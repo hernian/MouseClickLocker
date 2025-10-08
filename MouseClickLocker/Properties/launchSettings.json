@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "ScreenEx01": {
+      "commandName": "Project",
+      "nativeDebugging": true
+    }
+  }
+}

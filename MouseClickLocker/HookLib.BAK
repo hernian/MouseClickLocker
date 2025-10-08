@@ -1,0 +1,24 @@
+﻿using System;
+using System.Runtime.InteropServices;
+
+namespace ScreenEx01
+{
+    internal static class HookLib
+    {
+        // SetMouseHook関数のP/Invoke宣言
+        [DllImport("HookLib.dll", CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Unicode)]
+        public static extern bool SetMouseHook(IntPtr hWnd, IntPtr hWndMarker);
+
+        // UnsetMouseHook関数のP/Invoke宣言
+        [DllImport("HookLib.dll", CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Unicode)]
+        public static extern void UnsetMouseHook();
+
+        // UnsetMouseHook関数のP/Invoke宣言
+        [DllImport("HookLib.dll", CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Unicode)]
+        public static extern void ActivateClickLock(bool clickLock);
+
+        // UnsetMouseHook関数のP/Invoke宣言
+        [DllImport("HookLib.dll", CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Unicode)]
+        public static extern IntPtr GetLastMousePos();
+    }
+}
