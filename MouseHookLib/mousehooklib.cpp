@@ -1,8 +1,14 @@
 #include "pch.h"
 
-#define WM_NOTIFY_MOUSE_EVENT (WM_USER + 1)
+// WM_NOTIFY_LOCK_STATE
+//   wParam LOCK_STATE_LEFT or LOCK_STATE_RIGHT
+//   lParam 1: locked, 0: unlocked
+#define WM_NOTIFY_LOCK_STATE    (WM_USER + 1)
+#define LOCK_STATE_LEFT       1
+#define LOCK_STATE_RIGHT      2
 
-#define CLICK_LOCK_DELAY_MS 2000  // ƒ~ƒŠ•b
+
+#define CLICK_LOCK_DELAY_MS 1200  // ƒ~ƒŠ•b
 
 
 struct CLICKDATA {
@@ -11,6 +17,7 @@ struct CLICKDATA {
 	bool    isClickLocked;
 	bool    isTimerEventFired;
 	HANDLE  hClickTimer;
+    WPARAM  wParamLockState;
 };
 
 
@@ -49,7 +56,9 @@ void Initialize()
 {
 	g_hTimerQueue = CreateTimerQueue();
 	g_leftButtonClickData.name = TEXT("LeftButton");
+	g_leftButtonClickData.wParamLockState = LOCK_STATE_LEFT;
     g_rightButtonClickData.name = TEXT("RightButton");
+	g_rightButtonClickData.wParamLockState = LOCK_STATE_RIGHT;
 }
 
 static void SetMarkerPos()
@@ -68,7 +77,7 @@ static void CALLBACK ClickTimerProc(PVOID lpParam, BOOLEAN TimerOrWaitFired)
 	pClickData->isTimerEventFired = true;
 	pClickData->isClickLocked = true;
     SetMarkerPos();
-    ShowWindow(g_hWndMarker, SW_SHOWNOACTIVATE);
+    PostMessage(g_hWndMarker, WM_NOTIFY_LOCK_STATE, pClickData->wParamLockState, 1);
 }
 
 

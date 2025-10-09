@@ -1,6 +1,6 @@
 ﻿namespace MouseClickLocker
 {
-    partial class Form1
+    partial class MainForm
     {
         /// <summary>
         ///  Required designer variable.
@@ -52,8 +52,8 @@
             MinimizeBox = false;
             Name = "Form1";
             Text = "Form1";
-            Load += Form1_Load;
-            Move += Form1_Move;
+            Load += MainForm_Load;
+            Move += MainForm_Move;
             ResumeLayout(false);
         }
 

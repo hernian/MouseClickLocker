@@ -6,23 +6,23 @@ using System.ComponentModel;
 
 namespace MouseClickLocker
 {
-    public partial class Form1 : Form
+    public partial class MainForm : Form
     {
         private Form _markerForm;
-        public Form1()
+        public MainForm()
         {
             InitializeComponent();
-            this.Closing += Form1_Closing;
+            this.Closing += MainForm_Closing;
 
             _markerForm = new MarkerForm();
         }
-        private void Form1_Load(object sender, EventArgs e)
+        private void MainForm_Load(object sender, EventArgs e)
         {
             GetProcessDpiAwareness(Process.GetCurrentProcess().Handle, out int awareness);
             Debug.WriteLine($"Process DPI Awareness: {(ProcessDpiAwareness)awareness}");
 
             _markerForm.Show();
-            _markerForm.Hide();
+            // _markerForm.Hide();
 
             ActivateClickLock(true);
             SetMouseHook(this.Handle, _markerForm.Handle);
@@ -30,9 +30,9 @@ namespace MouseClickLocker
             Debug.WriteLine($"MarkerForm w: {_markerForm.Size.Width}, h: {_markerForm.Size.Height}");
         }
 
-        private async void Form1_Closing(object? sender, CancelEventArgs e)
+        private async void MainForm_Closing(object? sender, CancelEventArgs e)
         {
-            this.Closing -= Form1_Closing;
+            this.Closing -= MainForm_Closing;
             e.Cancel = true;
             // Ç±Ç±Ç≈àÍìxåƒÇ—èoÇµå≥Ç÷ï‘ÇÈ
             await Task.Yield();
@@ -59,7 +59,7 @@ namespace MouseClickLocker
             }
         }
 
-        private void Form1_Move(object sender, EventArgs e)
+        private void MainForm_Move(object sender, EventArgs e)
         {
             var b = this.Bounds;
             Debug.WriteLine($"Window Rect: x: {b.X}, y: {b.Y}, w: {b.Width}, h: {b.Height}");

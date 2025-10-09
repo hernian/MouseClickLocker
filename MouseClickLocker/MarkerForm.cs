@@ -4,23 +4,43 @@ using System.Windows.Forms;
 
 namespace MouseClickLocker
 {
-    public partial class MarkerForm : Form
+    public partial class MarkerForm : LayeredWindow
     {
+        public enum LockState
+        {
+            None,
+            Left,
+            Right,
+            Both
+        }
+
+        private readonly Dictionary<LockState, Bitmap> _lockBitmatDict = new()
+        {
+            { LockState.None, Properties.Resources.LockImageLeft },
+            { LockState.Left, Properties.Resources.LockImageLeft },
+            { LockState.Right, Properties.Resources.LockImageRight },
+            { LockState.Both, Properties.Resources.LockImageBoth }
+        };
+
         public MarkerForm()
         {
             InitializeComponent();
             this.AutoScaleMode = AutoScaleMode.None;
-            this.FormBorderStyle = FormBorderStyle.None;
-            this.ClientSize = new Size(16, 16);
+            this.Enabled = false;
             this.Load += MarkerForm_Load;
         }
 
         private void MarkerForm_Load(object? sender, EventArgs e)
         {
-            this.Enabled = false;
-            this.Size = new Size(16, 16);
-            Debug.WriteLine($"MarkerForm cli-w: {this.ClientSize.Width}, cli-h: {this.ClientSize.Height}");
-            Debug.WriteLine($"MarkerForm wnd-w: {this.Size.Width}, wnd-h: {this.Size.Height}");
+            var bitmap = _lockBitmatDict[LockState.None];
+            this.Size = bitmap.Size;
+            this.SetLayeredBitmap(bitmap);
+        }
+
+        public void SetLockState(LockState state)
+        {
+            var bitmap = _lockBitmatDict[state];
+            this.SetLayeredBitmap(bitmap);
         }
 
         protected override void WndProc(ref Message m)
