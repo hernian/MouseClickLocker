@@ -21,8 +21,7 @@ namespace MouseClickLocker
             GetProcessDpiAwareness(Process.GetCurrentProcess().Handle, out int awareness);
             Debug.WriteLine($"Process DPI Awareness: {(ProcessDpiAwareness)awareness}");
 
-            _markerForm.Show();
-            // _markerForm.Hide();
+            _markerForm.CreateControl();
 
             ActivateClickLock(true);
             SetMouseHook(this.Handle, _markerForm.Handle);
@@ -80,22 +79,6 @@ namespace MouseClickLocker
             Debug.WriteLine($"r: {r}, dpiX: {dpiX}, dpiY: {dpiY}");
             Debug.WriteLine("");
             _markerForm.Location = pt;
-        }
-        protected override void WndProc(ref Message m)
-        {
-            const int WM_NOTIFY_MOUSE_EVENT = 0x0401;
-
-            if (m.Msg == WM_NOTIFY_MOUSE_EVENT)
-            {
-                // マウス移動時の処理
-                // 例: 座標取得
-                var lParam = GetLastMousePos();
-                int x = (short)(lParam & 0xFFFF);
-                int y = (short)((lParam >> 16) & 0xFFFF);
-                var pt = new Point(x, y);
-                OnNotifyMouseEvent(m.WParam.ToInt32(), pt);
-            }
-            base.WndProc(ref m);
         }
     }
 }

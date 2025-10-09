@@ -61,6 +61,15 @@ namespace MouseClickLocker.Properties {
         }
         
         /// <summary>
+        ///   System.IO.MemoryStream に類似した型 System.IO.UnmanagedMemoryStream のローカライズされたリソースを検索します。
+        /// </summary>
+        internal static System.IO.UnmanagedMemoryStream ClickLockONSound {
+            get {
+                return ResourceManager.GetStream("ClickLockONSound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   型 System.Drawing.Bitmap のローカライズされたリソースを検索します。
         /// </summary>
         internal static System.Drawing.Bitmap LockImageBoth {
@@ -76,6 +85,16 @@ namespace MouseClickLocker.Properties {
         internal static System.Drawing.Bitmap LockImageLeft {
             get {
                 object obj = ResourceManager.GetObject("LockImageLeft", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   型 System.Drawing.Bitmap のローカライズされたリソースを検索します。
+        /// </summary>
+        internal static System.Drawing.Bitmap LockImageNone {
+            get {
+                object obj = ResourceManager.GetObject("LockImageNone", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }

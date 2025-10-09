@@ -14,8 +14,9 @@
 struct CLICKDATA {
 	LPCTSTR name;
 	bool    isButtonDown;
-	bool    isClickLocked;
-	bool    isTimerEventFired;
+	volatile bool   isClickLocked;
+	volatile bool   isTimerEventFired;
+	volatile bool   isTimerCanceled;
 	HANDLE  hClickTimer;
     WPARAM  wParamLockState;
 };
@@ -72,14 +73,26 @@ static void SetMarkerPos()
 
 static void CALLBACK ClickTimerProc(PVOID lpParam, BOOLEAN TimerOrWaitFired)
 {
-	CLICKDATA* pClickData = (CLICKDATA*)lpParam;
+    // LowLevelMouseProc()内でg_csを取得した状態で DeleteTimerQueueTimer() が呼ばれたとき、
+    // 同時にClickTimerProcが走りだすとデッドロックになってしまう。
+    // そこでLowLevelMouseProc()内でDeleteTimerQueueTimerを呼ぶ前に isTimerCanceled を true にする。
+    // ClickTimerProc内ではg_csを取得出来なくても、isTimerCanceledがtrueならば処理を中止する。
+    // 単純にClickTimerProcの先頭でisTimerCanceledをチェックするだけだと、
+    // isTimerCanceledのチェックとg_csの取得の間にLowLevelMouseProc()内でg_csを取得されて
+    // デッドロックする可能性があるのでダメ。
+    CLICKDATA* pClickData = (CLICKDATA*)lpParam;
+    while (TryEnterCriticalSection(&g_cs) == FALSE) {
+        if (pClickData->isTimerCanceled) {
+            return;
+        }
+        Sleep(0);
+    }
     DebugPrintf(TEXT("Click lock is activated. name: %s\r\n"), pClickData->name);
-	pClickData->isTimerEventFired = true;
-	pClickData->isClickLocked = true;
-    SetMarkerPos();
-    PostMessage(g_hWndMarker, WM_NOTIFY_LOCK_STATE, pClickData->wParamLockState, 1);
+    pClickData->isTimerEventFired = true;
+    pClickData->isClickLocked = true;
+    PostMessage(g_hWndMarker, WM_NOTIFY_LOCK_STATE, pClickData->wParamLockState, TRUE);
+    LeaveCriticalSection(&g_cs);
 }
-
 
 /*
  * g_cs で保護された状態で呼び出すこと
@@ -88,6 +101,8 @@ void CancelClickTimer(CLICKDATA& clickData)
 {
 	HANDLE hClickTimer = clickData.hClickTimer;
     if (hClickTimer != nullptr){
+		// ClickTimerProcでg_csを取得出来なくても良いようにする
+		clickData.isTimerCanceled = true;
         bool r = DeleteTimerQueueTimer(g_hTimerQueue, hClickTimer, INVALID_HANDLE_VALUE);
         DebugPrintf(TEXT("DeleteTimerQueueTimer. name: %s, r: %d, hClickTimer: %p\n"), clickData.name, hClickTimer);
 		clickData.hClickTimer = nullptr;
@@ -100,7 +115,8 @@ void OnButtonDown(CLICKDATA& clickData)
     clickData.isButtonDown = true;
 	CancelClickTimer(clickData);
     if (g_isClickLockActivated) {
-        clickData.isTimerEventFired = false;
+		clickData.isTimerEventFired = false;
+        clickData.isTimerCanceled = false;
         bool r = CreateTimerQueueTimer(&clickData.hClickTimer, g_hTimerQueue, ClickTimerProc, &clickData, CLICK_LOCK_DELAY_MS, 0, WT_EXECUTEDEFAULT);
         DebugPrintf(TEXT("CreateTimerQueueTimer. name: %s r: %d, hClickTimer: %p\n"), clickData.name, r, clickData.hClickTimer);
     }
@@ -112,14 +128,10 @@ void OnButtonUp(CLICKDATA& clickData, CLICKDATA& clickDataAlt)
     EnterCriticalSection(&g_cs);
 	clickData.isButtonDown = false;
 	CancelClickTimer(clickData);
-    DebugPrintf(TEXT("OnButtonUp. name: %s, isTimerEventFired: %d, isClickLocked: %d, alt.isClickLocked: %d\r\n"),
-        clickData.name, clickData.isTimerEventFired, clickData.isClickLocked, clickDataAlt.isClickLocked);
-    if (clickData.isTimerEventFired == false && clickData.isClickLocked) {
+    if (clickData.isClickLocked && !clickData.isTimerEventFired) {
         DebugPrintf(TEXT("Click lock is deactivated. name: %s\r\n"), clickData.name);
         clickData.isClickLocked = false;
-        if (clickDataAlt.isClickLocked == false) {
-            ShowWindow(g_hWndMarker, SW_HIDE);
-        }
+		PostMessage(g_hWndMarker, WM_NOTIFY_LOCK_STATE, clickData.wParamLockState, FALSE);
     }
     LeaveCriticalSection(&g_cs);
 }
@@ -179,10 +191,15 @@ LRESULT CALLBACK LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lParam)
     return CallNextHookEx(g_hMouseHook, nCode, wParam, lParam);
 }
 
+/*
+ * g_cs で保護された状態で呼び出すこと
+ */
 void DeactivateClickLock(CLICKDATA& clickData)
 {
     CancelClickTimer(clickData);
     clickData.isClickLocked = false;
+	clickData.isTimerEventFired = false;
+	PostMessage(g_hWndMarker, WM_NOTIFY_LOCK_STATE, clickData.wParamLockState, FALSE);
 }
 
 // フックの設定
@@ -219,7 +236,6 @@ extern "C" __declspec(dllexport) void ActivateClickLock(bool clickLock)
         EnterCriticalSection(&g_cs);
 		DeactivateClickLock(g_leftButtonClickData);
         DeactivateClickLock(g_rightButtonClickData);
-		ShowWindow(g_hWndMarker, SW_HIDE);
         LeaveCriticalSection(&g_cs);
     }
 }

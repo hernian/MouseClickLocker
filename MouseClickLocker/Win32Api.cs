@@ -33,5 +33,10 @@ namespace MouseClickLocker
 
         public const int MDT_EFFECTIVE_DPI = 0;
         public const uint MONITOR_DEFAULTTONEAREST = 2;
+
+        public const int WM_USER = 0x0400;
+
+        public const int WM_NCHITTEST = 0x0084;
+        public const int HTCAPTION = 0x02;
     }
 }
