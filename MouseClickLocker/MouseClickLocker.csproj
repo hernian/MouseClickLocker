@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <TargetFramework>net8.0-windows10.0.26100.0</TargetFramework>
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -10,11 +10,27 @@
     <Platforms>AnyCPU;x64</Platforms>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <Authors>hernianrunner@gmail.com</Authors>
+    <Company>herniankb</Company>
+    <Copyright>hernianrunner@gmail.com</Copyright>
+    <RepositoryUrl>https://github.com/hernian/MouseClickLocker</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>develop</PackageTags>
+    <AssemblyVersion>1.0.1.1</AssemblyVersion>
+    <ApplicationIcon>MouseClickLocker.ico</ApplicationIcon>
+  </PropertyGroup>
+
   <ItemGroup>
+    <None Remove="Form1.Designer.BAK" />
     <None Remove="LockImageBoth.png" />
     <None Remove="LockImageLeft.png" />
     <None Remove="LockImageRight.png" />
     <None Remove="MarkerForm.Designer.cs~RF11c560.TMP" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="MouseClickLocker.ico" />
   </ItemGroup>
 
   <ItemGroup>
@@ -34,6 +50,11 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <Compile Update="Properties\Settings.Designer.cs">
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+    </Compile>
   </ItemGroup>
 
   <ItemGroup>
@@ -41,6 +62,13 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
   </ItemGroup>
 
 </Project>

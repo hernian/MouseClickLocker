@@ -12,6 +12,5 @@
 #include <cstdarg>
 #include <cstdio>
 
-void Initialize();
 
 #endif //PCH_H

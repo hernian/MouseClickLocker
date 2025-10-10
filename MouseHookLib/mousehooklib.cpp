@@ -30,9 +30,10 @@ static bool g_isClickLockActivated = false;
 static LPARAM g_lastMousePos = 0;
 static CRITICAL_SECTION g_cs;
 static HANDLE g_hTimerQueue = nullptr;
-static int g_xMarkerOffset = 16;
-static int g_yMarkerOffset = 16;
-
+static int g_clickLockDelayMS = 0;
+static int g_markerXOffset = 16;
+static int g_markerYOffset = 16;
+static bool g_isMarkerOffsetPreview = false;
 static CLICKDATA g_leftButtonClickData;
 static CLICKDATA g_rightButtonClickData;
 
@@ -53,20 +54,11 @@ void DebugPrintf(LPCTSTR format, ...)
 	va_end(args);
 }
 
-void Initialize()
-{
-	g_hTimerQueue = CreateTimerQueue();
-	g_leftButtonClickData.name = TEXT("LeftButton");
-	g_leftButtonClickData.wParamLockState = LOCK_STATE_LEFT;
-    g_rightButtonClickData.name = TEXT("RightButton");
-	g_rightButtonClickData.wParamLockState = LOCK_STATE_RIGHT;
-}
-
 static void SetMarkerPos()
 {
     LPARAM lastMousePos = g_lastMousePos;
-    int x = GET_X_LPARAM(lastMousePos) + g_xMarkerOffset;
-    int y = GET_Y_LPARAM(lastMousePos) + g_yMarkerOffset;
+    int x = GET_X_LPARAM(lastMousePos) + g_markerXOffset;
+    int y = GET_Y_LPARAM(lastMousePos) + g_markerYOffset;
     SetWindowPos(g_hWndMarker, HWND_TOPMOST, x, y, 0, 0, SWP_NOACTIVATE | SWP_NOSIZE);
 }
 
@@ -179,7 +171,8 @@ LRESULT CALLBACK LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lParam)
             break;
 		case WM_MOUSEMOVE:
             if (g_leftButtonClickData.isButtonDown || g_leftButtonClickData.isClickLocked ||
-                    g_rightButtonClickData.isButtonDown || g_rightButtonClickData.isClickLocked) {
+                    g_rightButtonClickData.isButtonDown || g_rightButtonClickData.isClickLocked ||
+                    g_isMarkerOffsetPreview) {
                 SetMarkerPos();
             }
             break;
@@ -194,13 +187,24 @@ LRESULT CALLBACK LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lParam)
 /*
  * g_cs で保護された状態で呼び出すこと
  */
-void DeactivateClickLock(CLICKDATA& clickData)
+static void DeactivateClickLock(CLICKDATA& clickData)
 {
     CancelClickTimer(clickData);
     clickData.isClickLocked = false;
 	clickData.isTimerEventFired = false;
 	PostMessage(g_hWndMarker, WM_NOTIFY_LOCK_STATE, clickData.wParamLockState, FALSE);
 }
+
+extern "C" __declspec(dllexport) void Initialize()
+{
+    g_hTimerQueue = CreateTimerQueue();
+	InitializeCriticalSection(&g_cs);
+    g_leftButtonClickData.name = TEXT("LeftButton");
+    g_leftButtonClickData.wParamLockState = LOCK_STATE_LEFT;
+    g_rightButtonClickData.name = TEXT("RightButton");
+    g_rightButtonClickData.wParamLockState = LOCK_STATE_RIGHT;
+}
+
 
 // フックの設定
 extern "C" __declspec(dllexport) BOOL SetMouseHook(HWND hWndMain, HWND hWndMarker)
@@ -229,10 +233,10 @@ extern "C" __declspec(dllexport) void UnsetMouseHook()
     }
 }
 
-extern "C" __declspec(dllexport) void ActivateClickLock(bool clickLock)
+extern "C" __declspec(dllexport) void EnableClickLock(bool enable)
 {
-    g_isClickLockActivated = clickLock;
-    if (clickLock == false) {
+    g_isClickLockActivated = enable;
+    if (!enable) {
         EnterCriticalSection(&g_cs);
 		DeactivateClickLock(g_leftButtonClickData);
         DeactivateClickLock(g_rightButtonClickData);
@@ -240,3 +244,26 @@ extern "C" __declspec(dllexport) void ActivateClickLock(bool clickLock)
     }
 }
 
+extern "C" __declspec(dllexport) void SetClickLockDelay(int delayMs)
+{
+    g_clickLockDelayMS = delayMs;
+}
+
+extern "C" __declspec(dllexport) void SetMarkerOffset(int xOffset, int yOffset)
+{
+    g_markerXOffset = xOffset;
+    g_markerYOffset = yOffset;
+    if (g_leftButtonClickData.isButtonDown || g_leftButtonClickData.isClickLocked ||
+            g_rightButtonClickData.isButtonDown || g_rightButtonClickData.isClickLocked ||
+            g_isMarkerOffsetPreview) {
+        SetMarkerPos();
+    }
+}
+
+extern "C" __declspec(dllexport) void SetMarkerOffsetPreview(bool markerOffsetPreview)
+{
+    g_isMarkerOffsetPreview = markerOffsetPreview;
+    if (g_isMarkerOffsetPreview) {
+        SetMarkerPos();
+    }
+}

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -38,5 +39,57 @@ namespace MouseClickLocker
 
         public const int WM_NCHITTEST = 0x0084;
         public const int HTCAPTION = 0x02;
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct POINT
+        {
+            public int x;
+            public int y;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct CURSORINFO
+        {
+            public int cbSize;
+            public int flags;
+            public IntPtr hCursor;
+            public POINT ptScreenPos;
+        }
+
+        [DllImport("user32.dll")]
+        public static extern bool GetCursorInfo(ref CURSORINFO pci);
+
+        [DllImport("user32.dll")]
+        public static extern bool GetIconInfo(IntPtr hIcon, out ICONINFO piconinfo);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool DestroyIcon(IntPtr hIcon);
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct ICONINFO
+        {
+            public bool fIcon;
+            public int xHotspot;
+            public int yHotspot;
+            public IntPtr hbmMask;
+            public IntPtr hbmColor;
+        }
+
+        public static Bitmap? GetCursorBitmap()
+        {
+            var ci = new CURSORINFO();
+            ci.cbSize = Marshal.SizeOf(ci);
+            if (!GetCursorInfo(ref ci))
+            {
+                return null;
+            }
+            // hCursorをIconに変換
+            using var icon = Icon.FromHandle(ci.hCursor);
+            // IconからBitmapを取得
+            var bitmap = icon.ToBitmap();
+            // リソース解放
+            DestroyIcon(icon.Handle);
+            return bitmap;
+        }
     }
 }

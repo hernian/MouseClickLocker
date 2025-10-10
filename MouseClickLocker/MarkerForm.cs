@@ -12,10 +12,12 @@ namespace MouseClickLocker
         private readonly Bitmap _lockImageLeft = Properties.Resources.LockImageLeft;
         private readonly Bitmap _lockImageRight = Properties.Resources.LockImageRight;
         private readonly Bitmap _lockImageBoth = Properties.Resources.LockImageBoth;
+        private readonly Bitmap _lockImageNone = Properties.Resources.LockImageNone;
         private Bitmap _layeredBitmap;
         private bool _isLeftButtonLocked = false;
         private bool _isRightButtonLocked = false;
         private readonly SoundPlayer _soundPlayer;
+        private bool _offsetPreview = false;
 
         public MarkerForm()
         {
@@ -29,13 +31,37 @@ namespace MouseClickLocker
             _soundPlayer = new SoundPlayer(Properties.Resources.ClickLockONSound);
         }
 
+        public bool OffsetPreview
+        {
+            get
+            {
+                return _offsetPreview;
+            }
+            set
+            {
+                _offsetPreview = value;
+                if (_offsetPreview)
+                {
+                    this.Visible = true;
+                }
+                else if (_isLeftButtonLocked || _isRightButtonLocked)
+                {
+                    this.Visible = true;
+                }
+                else
+                {
+                    this.Visible = false;
+                }
+            }
+        }
+
         private void MarkerForm_Load(object? sender, EventArgs e)
         {
             this.Size = _layeredBitmap.Size;
             this.SetLayeredBitmap(_layeredBitmap);
         }
 
-        private Bitmap? GetLockStateBitmap()
+        private Bitmap GetLockStateBitmap()
         {
             if (this._isLeftButtonLocked && this._isRightButtonLocked)
             {
@@ -49,25 +75,18 @@ namespace MouseClickLocker
             {
                 return _lockImageRight;
             }
-            return null;
+            return _lockImageNone;
         }
 
         private void UpdateLayeredBitmap()
         {
             var bitmap = this.GetLockStateBitmap();
-            if (bitmap != null)
+            if (_layeredBitmap != bitmap)
             {
-                if (_layeredBitmap != bitmap)
-                {
-                    _layeredBitmap = bitmap;
-                    this.SetLayeredBitmap(_layeredBitmap);
-                }
-                this.Visible = true;
+                _layeredBitmap = bitmap;
+                this.SetLayeredBitmap(_layeredBitmap);
             }
-            else
-            {
-                this.Visible = false;
-            }
+            this.Visible = (_offsetPreview || _isLeftButtonLocked || _isRightButtonLocked);
         }
 
         private void OnNotifyLockState(ref Message m)

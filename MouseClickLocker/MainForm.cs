@@ -1,20 +1,28 @@
 using Microsoft.VisualBasic;
-using System.Diagnostics;
-using static MouseClickLocker.Win32Api;
-using static MouseClickLocker.MouseHookLib;
 using System.ComponentModel;
+using System.Diagnostics;
+using System.Reflection;
+using static MouseClickLocker.MouseHookLib;
+using static MouseClickLocker.Win32Api;
 
 namespace MouseClickLocker
 {
     public partial class MainForm : Form
     {
-        private Form _markerForm;
+        private MouseClickLockerSettings _settings;
+        private MarkerForm _markerForm;
         public MainForm()
         {
             InitializeComponent();
-            this.Closing += MainForm_Closing;
+
+            _settings = MouseClickLockerSettings.Load();
+            MouseHookLib.Initialize();
+            MouseHookLib.SetClickLockDelay(_settings.ClickLockDelayMS);
+            MouseHookLib.SetMarkerOffset(_settings.MarkerXOffset, _settings.MarkerYOffset);
 
             _markerForm = new MarkerForm();
+
+            this.Closing += MainForm_Closing;
         }
         private void MainForm_Load(object sender, EventArgs e)
         {
@@ -79,6 +87,52 @@ namespace MouseClickLocker
             Debug.WriteLine($"r: {r}, dpiX: {dpiX}, dpiY: {dpiY}");
             Debug.WriteLine("");
             _markerForm.Location = pt;
+        }
+
+        private void AboutToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            var assembly = Assembly.GetExecutingAssembly();
+            var copyrightAttr = assembly.GetCustomAttribute<AssemblyCopyrightAttribute>();
+            var copyright = copyrightAttr?.Copyright ?? "Unknown";
+            var version = assembly.GetName().Version;
+            var versionString = $"Mouse Click Locker\nVersion {version}\n\n(C) 2025 {copyright}";
+            MessageBox.Show(this,
+                versionString,
+                "Mouse Click Locker‚É‚Â‚¢‚Ät",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+        }
+
+        private void SettingsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            using var settingsForm = new SettingsForm(_settings);
+            _markerForm.OffsetPreview = true;
+            MouseHookLib.SetMarkerOffsetPreview(false);
+            try
+            {
+                if (settingsForm.ShowDialog(this) == DialogResult.OK)
+                {
+                    _settings = settingsForm.GetSettings();
+                    _settings.Save();
+                    MouseHookLib.SetClickLockDelay(_settings.ClickLockDelayMS);
+                    MouseHookLib.SetMarkerOffset(_settings.MarkerXOffset, _settings.MarkerYOffset);
+                }
+            }
+            finally
+            {
+                MouseHookLib.SetMarkerOffsetPreview(false);
+                _markerForm.OffsetPreview = false;
+            }
+        }
+
+        private void QuitToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            this.Close();
+        }
+
+        private void ContextMenuStrip_Opening(object sender, CancelEventArgs e)
+        {
+
         }
     }
 }
