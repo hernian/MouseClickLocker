@@ -1,44 +1,63 @@
 #include "pch.h"
 
+#if defined(_DEBUG)
+#define DEBUG_PRINTF(VA_ARGS) DebugPrintf(VA_ARGS)
+#else
+#define DEBUG_PRINTF(VA_ARGS)
+#endif
+
 // WM_NOTIFY_LOCK_STATE
-//   wParam LOCK_STATE_LEFT or LOCK_STATE_RIGHT
-//   lParam 1: locked, 0: unlocked
+//   wParam: LOCKTYPE_LEFT or LOCKTYPE_RIGHT
+//   lParam: One of the LOCKSTATE
 #define WM_NOTIFY_LOCK_STATE    (WM_USER + 1)
-#define LOCK_STATE_LEFT       1
-#define LOCK_STATE_RIGHT      2
+
+// WM_NOTIFY_LOCK_STATE wParam
+#define LOCKTYPE_LEFT       1
+#define LOCKTYPE_RIGHT      2
 
 
-#define CLICK_LOCK_DELAY_MS 1200  // ミリ秒
+enum LOCKSTATE {
+    LOCKSTATE_OFF = 0,
+    LOCKSTATE_ON = 1,
+	LOCKSTATE_SUPPRESSED = 2
+};
 
-
-struct CLICKDATA {
+struct BUTTONCONTEXT {
 	LPCTSTR name;
-	bool    isButtonDown;
-	volatile bool   isClickLocked;
-	volatile bool   isTimerEventFired;
-	volatile bool   isTimerCanceled;
-	HANDLE  hClickTimer;
-    WPARAM  wParamLockState;
+    WPARAM  wParamLockType;
+    HANDLE  hClickTimer;
+    bool    isButtonDown;
+	LOCKSTATE   lockState;
+	bool    isTimerEventFired;
+	bool    isTimerCanceled;
 };
 
 
-// グローバル変数
-static HWND g_hWndMain = nullptr;
-static HWND g_hWndMarker = nullptr;
-static HHOOK g_hMouseHook = nullptr;
-static bool g_isClickLockActivated = false;
-static LPARAM g_lastMousePos = 0;
-static CRITICAL_SECTION g_cs;
 static HANDLE g_hTimerQueue = nullptr;
-static int g_clickLockDelayMS = 0;
-static int g_markerXOffset = 16;
-static int g_markerYOffset = 16;
-static bool g_isMarkerOffsetPreview = false;
-static CLICKDATA g_leftButtonClickData;
-static CLICKDATA g_rightButtonClickData;
+
+static HWND g_hWndMarker = nullptr;
+
+static HHOOK g_hMouseHook = nullptr;
+
+static volatile bool g_isClickLockEnabled = false;
+
+static volatile LPARAM g_lastMousePos = 0;   // アトミックに読み書きできるようにMAKELPARAM(x, y)で結合したマウス座標
+static volatile LPARAM g_markerOffset = 0;   // アトミックに読み書きできるようにMAKELPARAM(xOffset, yOffset)で結合したマーカーオフセット
+
+static volatile int g_clickLockDelayMS = 0;
+static volatile bool g_isMarkerPreview = false;
 
 
-void DebugPrintf(LPCTSTR format, ...)
+static CRITICAL_SECTION g_cs;
+// ここから g_cs で保護された状態で参照・変更すること
+static BUTTONCONTEXT g_leftButtonClickData;
+static BUTTONCONTEXT g_rightButtonClickData;
+// ここまで g_cs で保護された状態で参照・変更すること
+
+
+#if defined(_DEBUG)
+
+static void DebugPrintf(LPCTSTR format, ...)
 {
     va_list args;
     va_start(args, format);
@@ -54,15 +73,27 @@ void DebugPrintf(LPCTSTR format, ...)
 	va_end(args);
 }
 
-static void SetMarkerPos()
+#endif
+
+
+/*
+ * @brief マーカーウィンドウの位置を更新する
+ */
+static void UpdateMarkerPos()
 {
     LPARAM lastMousePos = g_lastMousePos;
-    int x = GET_X_LPARAM(lastMousePos) + g_markerXOffset;
-    int y = GET_Y_LPARAM(lastMousePos) + g_markerYOffset;
+	LPARAM markerOffset = g_markerOffset;
+    int x = GET_X_LPARAM(lastMousePos) + GET_X_LPARAM(markerOffset);
+    int y = GET_Y_LPARAM(lastMousePos) + GET_Y_LPARAM(markerOffset);
     SetWindowPos(g_hWndMarker, HWND_TOPMOST, x, y, 0, 0, SWP_NOACTIVATE | SWP_NOSIZE);
 }
 
 
+/*
+ * @brief クリックロック検出用のタイマーコールバック関数
+ * @param lpParam BUTTONCONTEXTへのポインタ
+ * @param TimerOrWaitFired タイマーが起動した場合はTRUE、待機オブジェクトがシグナル状態になった場合はFALSE
+ */
 static void CALLBACK ClickTimerProc(PVOID lpParam, BOOLEAN TimerOrWaitFired)
 {
     // LowLevelMouseProc()内でg_csを取得した状態で DeleteTimerQueueTimer() が呼ばれたとき、
@@ -72,198 +103,230 @@ static void CALLBACK ClickTimerProc(PVOID lpParam, BOOLEAN TimerOrWaitFired)
     // 単純にClickTimerProcの先頭でisTimerCanceledをチェックするだけだと、
     // isTimerCanceledのチェックとg_csの取得の間にLowLevelMouseProc()内でg_csを取得されて
     // デッドロックする可能性があるのでダメ。
-    CLICKDATA* pClickData = (CLICKDATA*)lpParam;
+    BUTTONCONTEXT* pBtnCtx = (BUTTONCONTEXT*)lpParam;
     while (TryEnterCriticalSection(&g_cs) == FALSE) {
-        if (pClickData->isTimerCanceled) {
+        if (pBtnCtx->isTimerCanceled) {
             return;
         }
         Sleep(0);
     }
-    DebugPrintf(TEXT("Click lock is activated. name: %s\r\n"), pClickData->name);
-    pClickData->isTimerEventFired = true;
-    pClickData->isClickLocked = true;
-    PostMessage(g_hWndMarker, WM_NOTIFY_LOCK_STATE, pClickData->wParamLockState, TRUE);
+    DEBUG_PRINTF(TEXT("Click lock is activated. name: %s\r\n"), pBtnCtx->name);
+    pBtnCtx->isTimerEventFired = true;
+	pBtnCtx->lockState = (g_isClickLockEnabled) ? LOCKSTATE_ON : LOCKSTATE_SUPPRESSED;
+    PostMessage(g_hWndMarker, WM_NOTIFY_LOCK_STATE, pBtnCtx->wParamLockType, pBtnCtx->lockState);
     LeaveCriticalSection(&g_cs);
 }
 
 /*
- * g_cs で保護された状態で呼び出すこと
+ * @brief クリックロック検出用のタイマーをキャンセルする
+ * @param btnCtx ボタン状態のコンテキスト
+ * @note g_cs で保護された状態で呼び出すこと
  */
-void CancelClickTimer(CLICKDATA& clickData)
+static void CancelClickTimer(BUTTONCONTEXT& btnCtx)
 {
-	HANDLE hClickTimer = clickData.hClickTimer;
+	HANDLE hClickTimer = btnCtx.hClickTimer;
     if (hClickTimer != nullptr){
-		// ClickTimerProcでg_csを取得出来なくても良いようにする
-		clickData.isTimerCanceled = true;
+		btnCtx.isTimerCanceled = true;		// ClickTimerProcでg_csを取得出来なくても良いようにする
         bool r = DeleteTimerQueueTimer(g_hTimerQueue, hClickTimer, INVALID_HANDLE_VALUE);
-        DebugPrintf(TEXT("DeleteTimerQueueTimer. name: %s, r: %d, hClickTimer: %p\n"), clickData.name, hClickTimer);
-		clickData.hClickTimer = nullptr;
+        DEBUG_PRINTF(TEXT("DeleteTimerQueueTimer. name: %s, r: %d, hClickTimer: %p\n"), btnCtx.name, hClickTimer);
+		btnCtx.hClickTimer = nullptr;
     }
 }
 
-void OnButtonDown(CLICKDATA& clickData)
+/*
+ * @brief マウスボタンが押されたときの処理
+ * @param btnCtx ボタン状態のコンテキスト
+ * @return true: マウスイベントを無視する
+ */
+static bool OnButtonDown(BUTTONCONTEXT& btnCtx)
 {
     EnterCriticalSection(&g_cs);
-    clickData.isButtonDown = true;
-	CancelClickTimer(clickData);
-    if (g_isClickLockActivated) {
-		clickData.isTimerEventFired = false;
-        clickData.isTimerCanceled = false;
-        bool r = CreateTimerQueueTimer(&clickData.hClickTimer, g_hTimerQueue, ClickTimerProc, &clickData, CLICK_LOCK_DELAY_MS, 0, WT_EXECUTEDEFAULT);
-        DebugPrintf(TEXT("CreateTimerQueueTimer. name: %s r: %d, hClickTimer: %p\n"), clickData.name, r, clickData.hClickTimer);
-    }
+    btnCtx.isButtonDown = true;
+	CancelClickTimer(btnCtx);
+	btnCtx.isTimerEventFired = false;
+    btnCtx.isTimerCanceled = false;
+    bool rct = CreateTimerQueueTimer(&btnCtx.hClickTimer, g_hTimerQueue, ClickTimerProc, &btnCtx, g_clickLockDelayMS, 0, WT_EXECUTEDEFAULT);
+    DEBUG_PRINTF(TEXT("CreateTimerQueueTimer. name: %s rct: %d, hClickTimer: %p\n"), btnCtx.name, rct, btnCtx.hClickTimer);
+    bool res = (btnCtx.lockState == LOCKSTATE_ON);
     LeaveCriticalSection(&g_cs);
+    return res;
 }
 
-void OnButtonUp(CLICKDATA& clickData, CLICKDATA& clickDataAlt)
+/*
+ * @brief マウスボタンが放されたときの処理
+ * @param btnCtx ボタン状態のコンテキスト
+ * @return true: マウスイベントを無視する
+ */
+static bool OnButtonUp(BUTTONCONTEXT& btnCtx)
 {
     EnterCriticalSection(&g_cs);
-	clickData.isButtonDown = false;
-	CancelClickTimer(clickData);
-    if (clickData.isClickLocked && !clickData.isTimerEventFired) {
-        DebugPrintf(TEXT("Click lock is deactivated. name: %s\r\n"), clickData.name);
-        clickData.isClickLocked = false;
-		PostMessage(g_hWndMarker, WM_NOTIFY_LOCK_STATE, clickData.wParamLockState, FALSE);
+	btnCtx.isButtonDown = false;
+	CancelClickTimer(btnCtx);
+    if (!btnCtx.isTimerEventFired) {
+        DEBUG_PRINTF(TEXT("Click lock is deactivated. name: %s\r\n"), btnCtx.name);
+		btnCtx.isTimerEventFired = false;
+        btnCtx.lockState = LOCKSTATE_OFF;
+		PostMessage(g_hWndMarker, WM_NOTIFY_LOCK_STATE, btnCtx.wParamLockType, btnCtx.lockState);
     }
+    bool res = (btnCtx.lockState == LOCKSTATE_ON);
     LeaveCriticalSection(&g_cs);
+    return res;
 }
 
-
-// コールバック関数
-LRESULT CALLBACK LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lParam)
+/*
+ * @brief WH_MOUSE_HOOK_LL コールバック関数
+ * @param nCode フックコード
+ * @param wParam マウスメッセージ
+ * @param lParam MSLLHOOKSTRUCTへのポインタ
+ * @return 1: マウスイベントを無視する, それ以外は CallNextHookEx() の戻り値
+ */
+static LRESULT CALLBACK LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
+	bool ignoreMouseEvent = false;
     if (nCode >= 0) {
         const MSLLHOOKSTRUCT* pMouse = reinterpret_cast<const MSLLHOOKSTRUCT*>(lParam);
+		// マウスカーソル位置をグローバル変数に格納するにあたって
+        // x, y座標をLPARAMに結合してアトミックに格納するので排他制御は要らない
 		g_lastMousePos = MAKELPARAM(pMouse->pt.x, pMouse->pt.y);
+
         switch (wParam)
         {
         case WM_LBUTTONDOWN:
-			OnButtonDown(g_leftButtonClickData);
-            SetMarkerPos();
-            if (g_leftButtonClickData.isClickLocked) {
-                // 左ボタンダウンの無効化
-                return 1;
-            }
+			ignoreMouseEvent = OnButtonDown(g_leftButtonClickData);
+            UpdateMarkerPos();
             break;
         case WM_LBUTTONUP:
-            OnButtonUp(g_leftButtonClickData, g_rightButtonClickData);
-            SetMarkerPos();
-            if (g_leftButtonClickData.isClickLocked) {
-                // 左ボタンアップの無効化
-                return 1;
-            }
+            ignoreMouseEvent = OnButtonUp(g_leftButtonClickData);
+            UpdateMarkerPos();
             break;
         case WM_RBUTTONDOWN:
-            OnButtonDown(g_rightButtonClickData);
-            SetMarkerPos();
-            if (g_rightButtonClickData.isClickLocked) {
-                // 右ボタンダウンの無効化
-                return 1;
-            }
+            ignoreMouseEvent = OnButtonDown(g_rightButtonClickData);
+            UpdateMarkerPos();
             break;
         case WM_RBUTTONUP:
-            OnButtonUp(g_rightButtonClickData, g_leftButtonClickData);
-            SetMarkerPos();
-            if (g_rightButtonClickData.isClickLocked) {
-                // 右ボタンアップの無効化
-                return 1;
-			}
+            ignoreMouseEvent = OnButtonUp(g_rightButtonClickData);
+            UpdateMarkerPos();
             break;
 		case WM_MOUSEMOVE:
-            if (g_leftButtonClickData.isButtonDown || g_leftButtonClickData.isClickLocked ||
-                    g_rightButtonClickData.isButtonDown || g_rightButtonClickData.isClickLocked ||
-                    g_isMarkerOffsetPreview) {
-                SetMarkerPos();
+            if (g_leftButtonClickData.isButtonDown ||
+                    (g_leftButtonClickData.lockState != LOCKSTATE_OFF) ||
+                    g_rightButtonClickData.isButtonDown ||
+                    (g_rightButtonClickData.lockState != LOCKSTATE_OFF) ||
+                    g_isMarkerPreview) {
+                UpdateMarkerPos();
             }
             break;
         default:
             break;
         }
     }
+    if (ignoreMouseEvent) {
+        return 1;
+    }
     // 次のフックプロシージャへ
     return CallNextHookEx(g_hMouseHook, nCode, wParam, lParam);
 }
 
 /*
- * g_cs で保護された状態で呼び出すこと
+ * @brief クリックロックを解除する
+ * @param btxCtx ボタン状態のコンテキスト
+ * @note g_cs で保護された状態で呼び出すこと
  */
-static void DeactivateClickLock(CLICKDATA& clickData)
+static void DeactivateClickLock(BUTTONCONTEXT& btxCtx)
 {
-    CancelClickTimer(clickData);
-    clickData.isClickLocked = false;
-	clickData.isTimerEventFired = false;
-	PostMessage(g_hWndMarker, WM_NOTIFY_LOCK_STATE, clickData.wParamLockState, FALSE);
+    CancelClickTimer(btxCtx);
+    btxCtx.isTimerEventFired = false;
+    btxCtx.lockState = LOCKSTATE_OFF;
+	PostMessage(g_hWndMarker, WM_NOTIFY_LOCK_STATE, btxCtx.wParamLockType, btxCtx.lockState);
 }
 
+/*
+ * @brief 初期化
+ * @note 他の関数呼び出しに先だって一度だけ呼び出すこと
+ */
 extern "C" __declspec(dllexport) void Initialize()
 {
     g_hTimerQueue = CreateTimerQueue();
 	InitializeCriticalSection(&g_cs);
     g_leftButtonClickData.name = TEXT("LeftButton");
-    g_leftButtonClickData.wParamLockState = LOCK_STATE_LEFT;
+    g_leftButtonClickData.wParamLockType = LOCKTYPE_LEFT;
     g_rightButtonClickData.name = TEXT("RightButton");
-    g_rightButtonClickData.wParamLockState = LOCK_STATE_RIGHT;
+    g_rightButtonClickData.wParamLockType = LOCKTYPE_RIGHT;
 }
 
-
-// フックの設定
-extern "C" __declspec(dllexport) BOOL SetMouseHook(HWND hWndMain, HWND hWndMarker)
-{
-	g_hWndMain = hWndMain;
-	g_hWndMarker = hWndMarker;
-    if (g_hMouseHook == nullptr) {
-        InitializeCriticalSection(&g_cs);
-        g_hMouseHook = SetWindowsHookExW(
-            WH_MOUSE_LL,
-            LowLevelMouseProc,
-            GetModuleHandleW(nullptr),
-            0 // グローバルフック
-        );
-    }
-    return g_hMouseHook != nullptr;
-}
-
-// フックの解除
-extern "C" __declspec(dllexport) void UnsetMouseHook()
-{
-    if (g_hMouseHook) {
-        UnhookWindowsHookEx(g_hMouseHook);
-        g_hMouseHook = nullptr;
-        DeleteCriticalSection(&g_cs);
-    }
-}
-
+/*
+ * @brief クリックロックの有効・無効設定
+ * @param enable true: 有効, false: 無効
+ */
 extern "C" __declspec(dllexport) void EnableClickLock(bool enable)
 {
-    g_isClickLockActivated = enable;
+    g_isClickLockEnabled = enable;
     if (!enable) {
         EnterCriticalSection(&g_cs);
-		DeactivateClickLock(g_leftButtonClickData);
+        DeactivateClickLock(g_leftButtonClickData);
         DeactivateClickLock(g_rightButtonClickData);
         LeaveCriticalSection(&g_cs);
     }
 }
 
-extern "C" __declspec(dllexport) void SetClickLockDelay(int delayMs)
+/*
+ * @brief クリックロックまでの長押し時間の設定
+ * @param delayMs 遅延時間(ミリ秒)
+ */
+extern "C" __declspec(dllexport) void SetClickLockDelayMS(int delayMs)
 {
     g_clickLockDelayMS = delayMs;
 }
 
+/*
+ * @brief カーソル位置に対するマーカー位置のオフセットの設定
+ * @param xOffset X方向のオフセット
+ * @param yOffset Y方向のオフセット
+ */
 extern "C" __declspec(dllexport) void SetMarkerOffset(int xOffset, int yOffset)
 {
-    g_markerXOffset = xOffset;
-    g_markerYOffset = yOffset;
-    if (g_leftButtonClickData.isButtonDown || g_leftButtonClickData.isClickLocked ||
-            g_rightButtonClickData.isButtonDown || g_rightButtonClickData.isClickLocked ||
-            g_isMarkerOffsetPreview) {
-        SetMarkerPos();
+    g_markerOffset = MAKELPARAM(xOffset, yOffset);
+    if (g_leftButtonClickData.isButtonDown ||
+            (g_leftButtonClickData.lockState == LOCKSTATE_ON) ||
+            g_rightButtonClickData.isButtonDown ||
+            (g_rightButtonClickData.lockState == LOCKSTATE_ON) ||
+            g_isMarkerPreview) {
+        UpdateMarkerPos();
     }
 }
 
-extern "C" __declspec(dllexport) void SetMarkerOffsetPreview(bool markerOffsetPreview)
+extern "C" __declspec(dllexport) void SetMarkerPreview(bool markerPreview)
 {
-    g_isMarkerOffsetPreview = markerOffsetPreview;
-    if (g_isMarkerOffsetPreview) {
-        SetMarkerPos();
+    g_isMarkerPreview = markerPreview;
+    if (g_isMarkerPreview) {
+        UpdateMarkerPos();
     }
 }
+
+/*
+ * @brief フックの設定
+ * @param hWndMarker マーカーウィンドウのウィンドウハンドル
+ * @return TRUE: 成功, FALSE: 失敗
+ */
+extern "C" __declspec(dllexport) void SetMouseHook(HWND hWndMarker)
+{
+	g_hWndMarker = hWndMarker;
+    g_hMouseHook = SetWindowsHookExW(
+        WH_MOUSE_LL,
+        LowLevelMouseProc,
+        GetModuleHandleW(nullptr),
+        0 // グローバルフック
+    );
+}
+
+/*
+ * @brief フックの解除
+ */
+extern "C" __declspec(dllexport) void UnsetMouseHook()
+{
+    if (g_hMouseHook) {
+        UnhookWindowsHookEx(g_hMouseHook);
+        g_hMouseHook = nullptr;
+    }
+}
+

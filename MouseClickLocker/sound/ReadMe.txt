@@ -4,5 +4,14 @@
 以下のURLから「システム12 wav」をダウンロードしてください
 https://maou.audio/se_system12/
 
+以下のURLから「ワンポイント26 wav」をダウンロードしてください
+
+ワンポイント23 クリックがロックされたときの音に使用
+https://maou.audio/se_onepoint23/
+
+ワンポイント23 クリックが無効なときに長押しされたときの音に使用
+https://maou.audio/se_onepoint26/
+
+https://maou.audio/se_system48/
 利用規約
 https://maou.audio/rule/

@@ -30,25 +30,15 @@
         {
             components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
-            button1 = new Button();
             notifyIcon = new NotifyIcon(components);
             contextMenuStrip = new ContextMenuStrip(components);
             aboutToolStripMenuItem = new ToolStripMenuItem();
             settingsToolStripMenuItem = new ToolStripMenuItem();
+            isClickLockEnabledToolStripMenuItem = new ToolStripMenuItem();
             toolStripSeparator1 = new ToolStripSeparator();
             quitToolStripMenuItem = new ToolStripMenuItem();
             contextMenuStrip.SuspendLayout();
             SuspendLayout();
-            // 
-            // button1
-            // 
-            button1.Location = new Point(24, 22);
-            button1.Name = "button1";
-            button1.Size = new Size(75, 23);
-            button1.TabIndex = 0;
-            button1.Text = "button1";
-            button1.UseVisualStyleBackColor = true;
-            button1.Click += Button1_Click;
             // 
             // notifyIcon
             // 
@@ -59,34 +49,43 @@
             // 
             // contextMenuStrip
             // 
-            contextMenuStrip.Items.AddRange(new ToolStripItem[] { aboutToolStripMenuItem, settingsToolStripMenuItem, toolStripSeparator1, quitToolStripMenuItem });
+            contextMenuStrip.Items.AddRange(new ToolStripItem[] { aboutToolStripMenuItem, settingsToolStripMenuItem, isClickLockEnabledToolStripMenuItem, toolStripSeparator1, quitToolStripMenuItem });
             contextMenuStrip.Name = "contextMenuStrip";
-            contextMenuStrip.Size = new Size(181, 98);
+            contextMenuStrip.Size = new Size(242, 98);
+            contextMenuStrip.Closed += ContextMenuStrip_Closed;
             contextMenuStrip.Opening += ContextMenuStrip_Opening;
             // 
             // aboutToolStripMenuItem
             // 
             aboutToolStripMenuItem.Name = "aboutToolStripMenuItem";
-            aboutToolStripMenuItem.Size = new Size(180, 22);
-            aboutToolStripMenuItem.Text = "～について(&A)...";
+            aboutToolStripMenuItem.Size = new Size(241, 22);
+            aboutToolStripMenuItem.Text = "Mouse Click Lokcer について(&A)...";
             aboutToolStripMenuItem.Click += AboutToolStripMenuItem_Click;
             // 
             // settingsToolStripMenuItem
             // 
             settingsToolStripMenuItem.Name = "settingsToolStripMenuItem";
-            settingsToolStripMenuItem.Size = new Size(180, 22);
+            settingsToolStripMenuItem.Size = new Size(241, 22);
             settingsToolStripMenuItem.Text = "設定(&S)...";
             settingsToolStripMenuItem.Click += SettingsToolStripMenuItem_Click;
+            // 
+            // isClickLockEnabledToolStripMenuItem
+            // 
+            isClickLockEnabledToolStripMenuItem.Checked = true;
+            isClickLockEnabledToolStripMenuItem.CheckState = CheckState.Checked;
+            isClickLockEnabledToolStripMenuItem.Name = "isClickLockEnabledToolStripMenuItem";
+            isClickLockEnabledToolStripMenuItem.Size = new Size(241, 22);
+            isClickLockEnabledToolStripMenuItem.Text = "クリックロックを有効にする";
             // 
             // toolStripSeparator1
             // 
             toolStripSeparator1.Name = "toolStripSeparator1";
-            toolStripSeparator1.Size = new Size(177, 6);
+            toolStripSeparator1.Size = new Size(238, 6);
             // 
             // quitToolStripMenuItem
             // 
             quitToolStripMenuItem.Name = "quitToolStripMenuItem";
-            quitToolStripMenuItem.Size = new Size(180, 22);
+            quitToolStripMenuItem.Size = new Size(241, 22);
             quitToolStripMenuItem.Text = "終了(&Q)";
             quitToolStripMenuItem.Click += QuitToolStripMenuItem_Click;
             // 
@@ -95,7 +94,6 @@
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(184, 61);
-            Controls.Add(button1);
             FormBorderStyle = FormBorderStyle.FixedSingle;
             MaximizeBox = false;
             MinimizeBox = false;
@@ -108,13 +106,12 @@
         }
 
         #endregion
-
-        private Button button1;
         private NotifyIcon notifyIcon;
         private ContextMenuStrip contextMenuStrip;
         private ToolStripMenuItem aboutToolStripMenuItem;
         private ToolStripMenuItem settingsToolStripMenuItem;
         private ToolStripSeparator toolStripSeparator1;
         private ToolStripMenuItem quitToolStripMenuItem;
+        private ToolStripMenuItem isClickLockEnabledToolStripMenuItem;
     }
 }

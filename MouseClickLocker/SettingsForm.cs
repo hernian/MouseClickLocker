@@ -48,22 +48,6 @@ namespace MouseClickLocker
             MouseHookLib.SetMarkerOffset(xOffset, yOffset);
         }
 
-        private void SettingsForm_Load(object sender, EventArgs e)
-        {
-            MouseHookLib.SetMarkerOffsetPreview(true);
-        }
-
-        private void SettingsForm_FormClosed(object sender, FormClosedEventArgs e)
-        {
-            MouseHookLib.SetMarkerOffsetPreview(false);
-            // Cancelボタンで閉じた場合は設定を元に戻す
-            // OKボタンで閉じた場合は呼び出し側でMarkerOffsetを含め各設定値を更新するので戻す必要はない
-            if (this.DialogResult == DialogResult.Cancel)
-            {
-                MouseHookLib.SetMarkerOffset(_initialXOffset, _initialYOffset);
-            }
-        }
-
         private void TrackBarMarkerXOffset_ValueChanged(object sender, EventArgs e)
         {
             this.PreviewMarkerOffset();

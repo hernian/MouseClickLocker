@@ -2,22 +2,29 @@
 using System.Diagnostics;
 using System.Windows.Forms;
 using static MouseClickLocker.Win32Api;
-using static MouseClickLocker.MouseHookLib;
 using System.Media;
-
+    
 namespace MouseClickLocker
 {
+    using LockState = MouseHookLib.LockState;
+
     public partial class MarkerForm : LayeredWindow
     {
         private readonly Bitmap _lockImageLeft = Properties.Resources.LockImageLeft;
         private readonly Bitmap _lockImageRight = Properties.Resources.LockImageRight;
         private readonly Bitmap _lockImageBoth = Properties.Resources.LockImageBoth;
         private readonly Bitmap _lockImageNone = Properties.Resources.LockImageNone;
+        private readonly Bitmap _lockImageSuppressed = Properties.Resources.LockImageSuppressed;
+
+        private readonly SoundPlayer _lockActivatedSoundPlayer = new(Properties.Resources.ClickLockActivatedSound);
+        private readonly SoundPlayer _lockSuppressedSoundPlayer = new(Properties.Resources.ClickLockSuppressedSound);
+        private readonly SoundPlayer _lockDeactivatedSoundPlayer = new(Properties.Resources.ClickLockDeactivatedSound);
+
         private Bitmap _layeredBitmap;
-        private bool _isLeftButtonLocked = false;
-        private bool _isRightButtonLocked = false;
-        private readonly SoundPlayer _soundPlayer;
-        private bool _offsetPreview = false;
+        private LockState _leftLockState = LockState.DEACTIVATED;
+        private LockState _rightLockState = LockState.DEACTIVATED;
+        private bool _preview = false;
+        private readonly System.Windows.Forms.Timer _timer;
 
         public MarkerForm()
         {
@@ -27,24 +34,34 @@ namespace MouseClickLocker
             this.Visible = false;
             this.Load += MarkerForm_Load;
 
-            _layeredBitmap = _lockImageLeft;
-            _soundPlayer = new SoundPlayer(Properties.Resources.ClickLockONSound);
+            _layeredBitmap = _lockImageNone;
+            _timer = new System.Windows.Forms.Timer();
+            _timer.Interval = 2000;
+            _timer.Tick += Timer_Tick;
+        }
+        private void Timer_Tick(object? sender, EventArgs e)
+        {
+            _timer.Stop();
+            if ((_leftLockState == LockState.SUPPRESSED) || (_rightLockState == LockState.SUPPRESSED))
+            {
+                this.Visible = false;
+            }
         }
 
-        public bool OffsetPreview
+        public bool Preview
         {
             get
             {
-                return _offsetPreview;
+                return _preview;
             }
             set
             {
-                _offsetPreview = value;
-                if (_offsetPreview)
+                _preview = value;
+                if (_preview)
                 {
                     this.Visible = true;
                 }
-                else if (_isLeftButtonLocked || _isRightButtonLocked)
+                else if ((_leftLockState != LockState.DEACTIVATED) || (_rightLockState != LockState.DEACTIVATED))
                 {
                     this.Visible = true;
                 }
@@ -63,15 +80,19 @@ namespace MouseClickLocker
 
         private Bitmap GetLockStateBitmap()
         {
-            if (this._isLeftButtonLocked && this._isRightButtonLocked)
+            if ((_leftLockState == LockState.SUPPRESSED) || (_rightLockState == LockState.SUPPRESSED))
+            {
+                return _lockImageSuppressed;
+            }
+            if ((_leftLockState == LockState.ACTIVATED) && (_rightLockState == LockState.ACTIVATED))
             {
                 return _lockImageBoth;
             }
-            if (this._isLeftButtonLocked)
+            if (_leftLockState == LockState.ACTIVATED)
             {
                 return _lockImageLeft;
             }
-            if (this._isRightButtonLocked)
+            if (_rightLockState == LockState.ACTIVATED)
             {
                 return _lockImageRight;
             }
@@ -80,31 +101,63 @@ namespace MouseClickLocker
 
         private void UpdateLayeredBitmap()
         {
+        }
+
+        private bool IsClickLockDeactivated(LockState prev, LockState cur)
+        {
+            if ((prev == LockState.ACTIVATED) && (cur == LockState.DEACTIVATED))
+            {
+                return true;
+            }
+            return false;
+        }
+
+        private void OnNotifyLockState(ref Message m)
+        {
+            Debug.WriteLine("[MarkerForm]OnNotifyLockState");
+            var leftLockStatePrev = _leftLockState;
+            var rightLockStatePrev = _rightLockState;
+            var lockType = (int)m.WParam;
+            var lockState = (LockState)m.LParam;
+            switch (lockType)
+            { 
+                case MouseHookLib.LOCKTYPE_LEFT:
+                    _leftLockState = lockState;
+                    break;
+                case MouseHookLib.LOCKTYPE_RIGHT:
+                    _rightLockState = lockState;
+                    break;
+            }
+            switch (lockState)
+            {
+                case LockState.ACTIVATED:
+                    _lockActivatedSoundPlayer.Play();
+                    break;
+                case LockState.SUPPRESSED:
+                    _lockSuppressedSoundPlayer.Play();
+                    break;
+                default:
+                    break;
+            }
+
             var bitmap = this.GetLockStateBitmap();
             if (_layeredBitmap != bitmap)
             {
                 _layeredBitmap = bitmap;
                 this.SetLayeredBitmap(_layeredBitmap);
             }
-            this.Visible = (_offsetPreview || _isLeftButtonLocked || _isRightButtonLocked);
-        }
 
-        private void OnNotifyLockState(ref Message m)
-        {
-            switch (m.WParam)
-            { 
-                case LOCK_STATE_LEFT:
-                    this._isLeftButtonLocked = (m.LParam == 1);
-                    break;
-                case LOCK_STATE_RIGHT:
-                    this._isRightButtonLocked = (m.LParam == 1);
-                    break;
-            }
-            if (m.LParam == 1)
+            Debug.WriteLine($"[MarkerForm]_leftLockState: {_leftLockState}, _right: {_rightLockState}, _preview: {_preview}");
+            this.Visible = (_preview || (_leftLockState != LockState.DEACTIVATED) || (_rightLockState != LockState.DEACTIVATED));
+            _timer.Stop();
+            if (_leftLockState == LockState.SUPPRESSED || _rightLockState == LockState.SUPPRESSED)
             {
-                _soundPlayer.Play();
+                _timer.Start();
             }
-            this.UpdateLayeredBitmap();
+            else if (IsClickLockDeactivated(leftLockStatePrev, _leftLockState) || IsClickLockDeactivated(rightLockStatePrev, _rightLockState))
+            {
+                _lockDeactivatedSoundPlayer.Play();
+            }
         }
 
         protected override void WndProc(ref Message m)
@@ -114,7 +167,7 @@ namespace MouseClickLocker
                 m.Result = (IntPtr)HTCAPTION;
                 return;
             }
-            if (m.Msg == WM_NOTIFY_LOCK_STATE)
+            if (m.Msg == MouseHookLib.WM_NOTIFY_LOCK_STATE)
             {
                 this.OnNotifyLockState(ref m);
                 return;

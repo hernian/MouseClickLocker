@@ -155,8 +155,6 @@
             MinimizeBox = false;
             Name = "SettingsForm";
             Text = "マウスクリックロックの設定";
-            FormClosed += SettingsForm_FormClosed;
-            Load += SettingsForm_Load;
             ((System.ComponentModel.ISupportInitialize)trackBarMarkerXOffset).EndInit();
             ((System.ComponentModel.ISupportInitialize)trackBarMarkerYOffset).EndInit();
             ((System.ComponentModel.ISupportInitialize)trackBarClickLockDelayMS).EndInit();

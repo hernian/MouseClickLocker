@@ -2,7 +2,6 @@ using Microsoft.VisualBasic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Reflection;
-using static MouseClickLocker.MouseHookLib;
 using static MouseClickLocker.Win32Api;
 
 namespace MouseClickLocker
@@ -10,6 +9,7 @@ namespace MouseClickLocker
     public partial class MainForm : Form
     {
         private MouseClickLockerSettings _settings;
+        private bool _isClickLockEnabled = true;
         private MarkerForm _markerForm;
         public MainForm()
         {
@@ -17,7 +17,7 @@ namespace MouseClickLocker
 
             _settings = MouseClickLockerSettings.Load();
             MouseHookLib.Initialize();
-            MouseHookLib.SetClickLockDelay(_settings.ClickLockDelayMS);
+            MouseHookLib.SetClickLockDelayMS(_settings.ClickLockDelayMS);
             MouseHookLib.SetMarkerOffset(_settings.MarkerXOffset, _settings.MarkerYOffset);
 
             _markerForm = new MarkerForm();
@@ -31,8 +31,8 @@ namespace MouseClickLocker
 
             _markerForm.CreateControl();
 
-            ActivateClickLock(true);
-            SetMouseHook(this.Handle, _markerForm.Handle);
+            MouseHookLib.EnableClickLock(_isClickLockEnabled);
+            MouseHookLib.SetMouseHook(_markerForm.Handle);
 
             Debug.WriteLine($"MarkerForm w: {_markerForm.Size.Width}, h: {_markerForm.Size.Height}");
         }
@@ -44,7 +44,7 @@ namespace MouseClickLocker
             // ここで一度呼び出し元へ返る
             await Task.Yield();
 
-            UnsetMouseHook();
+            MouseHookLib.UnsetMouseHook();
             _markerForm.Close();
             this.Close();
         }
@@ -106,22 +106,23 @@ namespace MouseClickLocker
         private void SettingsToolStripMenuItem_Click(object sender, EventArgs e)
         {
             using var settingsForm = new SettingsForm(_settings);
-            _markerForm.OffsetPreview = true;
-            MouseHookLib.SetMarkerOffsetPreview(false);
+            _markerForm.Preview = true;
+            MouseHookLib.SetMarkerPreview(false);
             try
             {
                 if (settingsForm.ShowDialog(this) == DialogResult.OK)
                 {
                     _settings = settingsForm.GetSettings();
                     _settings.Save();
-                    MouseHookLib.SetClickLockDelay(_settings.ClickLockDelayMS);
+                    MouseHookLib.SetClickLockDelayMS(_settings.ClickLockDelayMS);
                     MouseHookLib.SetMarkerOffset(_settings.MarkerXOffset, _settings.MarkerYOffset);
                 }
             }
             finally
             {
-                MouseHookLib.SetMarkerOffsetPreview(false);
-                _markerForm.OffsetPreview = false;
+                MouseHookLib.SetMarkerOffset(_settings.MarkerXOffset, _settings.MarkerYOffset);
+                MouseHookLib.SetMarkerPreview(false);
+                _markerForm.Preview = false;
             }
         }
 
@@ -132,7 +133,14 @@ namespace MouseClickLocker
 
         private void ContextMenuStrip_Opening(object sender, CancelEventArgs e)
         {
+            isClickLockEnabledToolStripMenuItem.Checked = _isClickLockEnabled;
+        }
 
+        private void ContextMenuStrip_Closed(object sender, ToolStripDropDownClosedEventArgs e)
+        {
+            // トグル動作
+            _isClickLockEnabled = (isClickLockEnabledToolStripMenuItem.Checked == false);
+            MouseHookLib.EnableClickLock(_isClickLockEnabled);
         }
     }
 }

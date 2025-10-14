@@ -63,9 +63,27 @@ namespace MouseClickLocker.Properties {
         /// <summary>
         ///   System.IO.MemoryStream に類似した型 System.IO.UnmanagedMemoryStream のローカライズされたリソースを検索します。
         /// </summary>
-        internal static System.IO.UnmanagedMemoryStream ClickLockONSound {
+        internal static System.IO.UnmanagedMemoryStream ClickLockActivatedSound {
             get {
-                return ResourceManager.GetStream("ClickLockONSound", resourceCulture);
+                return ResourceManager.GetStream("ClickLockActivatedSound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   System.IO.MemoryStream に類似した型 System.IO.UnmanagedMemoryStream のローカライズされたリソースを検索します。
+        /// </summary>
+        internal static System.IO.UnmanagedMemoryStream ClickLockDeactivatedSound {
+            get {
+                return ResourceManager.GetStream("ClickLockDeactivatedSound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   System.IO.MemoryStream に類似した型 System.IO.UnmanagedMemoryStream のローカライズされたリソースを検索します。
+        /// </summary>
+        internal static System.IO.UnmanagedMemoryStream ClickLockSuppressedSound {
+            get {
+                return ResourceManager.GetStream("ClickLockSuppressedSound", resourceCulture);
             }
         }
         
@@ -105,6 +123,16 @@ namespace MouseClickLocker.Properties {
         internal static System.Drawing.Bitmap LockImageRight {
             get {
                 object obj = ResourceManager.GetObject("LockImageRight", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   型 System.Drawing.Bitmap のローカライズされたリソースを検索します。
+        /// </summary>
+        internal static System.Drawing.Bitmap LockImageSuppressed {
+            get {
+                object obj = ResourceManager.GetObject("LockImageSuppressed", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
