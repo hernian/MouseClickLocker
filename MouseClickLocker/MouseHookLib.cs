@@ -21,6 +21,9 @@ namespace MouseClickLocker
         public static extern void SetMarkerPreview(bool markerPreview);
 
         [DllImport("MouseHookLib.dll", CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Unicode)]
+        public static extern void AllowMouseMove(bool allow, int distancePx);
+
+        [DllImport("MouseHookLib.dll", CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Unicode)]
         public static extern void SetMouseHook(IntPtr hWndMarker);
 
         [DllImport("MouseHookLib.dll", CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Unicode)]

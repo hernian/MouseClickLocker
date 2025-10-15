@@ -41,9 +41,12 @@ static HHOOK g_hMouseHook = nullptr;
 
 static volatile bool g_isClickLockEnabled = false;
 
-static volatile LPARAM g_lastMousePos = 0;   // アトミックに読み書きできるようにMAKELPARAM(x, y)で結合したマウス座標
-static volatile LPARAM g_markerOffset = 0;   // アトミックに読み書きできるようにMAKELPARAM(xOffset, yOffset)で結合したマーカーオフセット
-
+static volatile LPARAM g_lastMousePos = 0;      // 最新のマウス位置。アトミックに読み書きできるようにMAKELPARAM(x, y)で結合したマウス座標
+static volatile LPARAM g_leftDownMousePos = 0;  // 左クリックマウス開始。アトミックに読み書きできるようにMAKELPARAM(x, y)で結合したマウス座標
+static volatile LPARAM g_rightDownMousePos = 0; // 右クリックマウス開始。アトミックに読み書きできるようにMAKELPARAM(x, y)で結合したマウス座標
+static volatile LPARAM g_markerOffset = 0;      // アトミックに読み書きできるようにMAKELPARAM(xOffset, yOffset)で結合したマーカーオフセット
+static volatile bool g_allowMouseMove = false; // クリックロック判定中にマウス移動を許容するか
+static volatile int g_allowMouseMoveDistancePx = 0; // クリックロック判定中に許容するマウス移動距離
 static volatile int g_clickLockDelayMS = 0;
 static volatile bool g_isMarkerPreview = false;
 
@@ -53,6 +56,12 @@ static CRITICAL_SECTION g_cs;
 static BUTTONCONTEXT g_leftButtonClickData;
 static BUTTONCONTEXT g_rightButtonClickData;
 // ここまで g_cs で保護された状態で参照・変更すること
+
+
+inline int abs(int a)
+{
+    return (a < 0) ? -a : a;
+}
 
 
 #if defined(_DEBUG)
@@ -114,6 +123,9 @@ static void CALLBACK ClickTimerProc(PVOID lpParam, BOOLEAN TimerOrWaitFired)
     pBtnCtx->isTimerEventFired = true;
 	pBtnCtx->lockState = (g_isClickLockEnabled) ? LOCKSTATE_ON : LOCKSTATE_SUPPRESSED;
     PostMessage(g_hWndMarker, WM_NOTIFY_LOCK_STATE, pBtnCtx->wParamLockType, pBtnCtx->lockState);
+    bool r = DeleteTimerQueueTimer(g_hTimerQueue, pBtnCtx->hClickTimer, NULL);
+    DEBUG_PRINTF(TEXT("DeleteTimerQueueTimer. name: %s, r: %d, hClickTimer: %p\n"), pBtnCtx->name, pBtnCtx->hClickTimer);
+    pBtnCtx->hClickTimer = nullptr;
     LeaveCriticalSection(&g_cs);
 }
 
@@ -173,6 +185,27 @@ static bool OnButtonUp(BUTTONCONTEXT& btnCtx)
     return res;
 }
 
+static void OnMouseMove(BUTTONCONTEXT& btnCtx, LPARAM downMousePos)
+{
+    if (!btnCtx.isButtonDown) {
+        return;
+    }
+    if (g_allowMouseMove) {
+        return;
+    }
+    EnterCriticalSection(&g_cs);
+    if ((btnCtx.hClickTimer != nullptr) && (btnCtx.isTimerEventFired == false)) {
+        int moveDx = abs(GET_X_LPARAM(g_lastMousePos) - GET_X_LPARAM(downMousePos));
+        int moveDy = abs(GET_Y_LPARAM(g_lastMousePos) - GET_Y_LPARAM(downMousePos));
+        if ((moveDx > g_allowMouseMoveDistancePx) || (moveDy > g_allowMouseMoveDistancePx)) {
+            CancelClickTimer(btnCtx);
+        }
+    }
+    LeaveCriticalSection(&g_cs);
+    PostMessage(g_hWndMarker, WM_NOTIFY_LOCK_STATE, btnCtx.wParamLockType, btnCtx.lockState);
+}
+
+
 /*
  * @brief WH_MOUSE_HOOK_LL コールバック関数
  * @param nCode フックコード
@@ -192,6 +225,7 @@ static LRESULT CALLBACK LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lPara
         switch (wParam)
         {
         case WM_LBUTTONDOWN:
+            g_leftDownMousePos = g_lastMousePos;
 			ignoreMouseEvent = OnButtonDown(g_leftButtonClickData);
             UpdateMarkerPos();
             break;
@@ -200,6 +234,7 @@ static LRESULT CALLBACK LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lPara
             UpdateMarkerPos();
             break;
         case WM_RBUTTONDOWN:
+            g_rightDownMousePos = g_lastMousePos;
             ignoreMouseEvent = OnButtonDown(g_rightButtonClickData);
             UpdateMarkerPos();
             break;
@@ -208,13 +243,15 @@ static LRESULT CALLBACK LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lPara
             UpdateMarkerPos();
             break;
 		case WM_MOUSEMOVE:
+            OnMouseMove(g_leftButtonClickData, g_leftDownMousePos);
+            OnMouseMove(g_rightButtonClickData, g_rightDownMousePos);
             if (g_leftButtonClickData.isButtonDown ||
-                    (g_leftButtonClickData.lockState != LOCKSTATE_OFF) ||
+                    (g_leftButtonClickData.lockState == LOCKSTATE_ON) ||
                     g_rightButtonClickData.isButtonDown ||
-                    (g_rightButtonClickData.lockState != LOCKSTATE_OFF) ||
+                    (g_rightButtonClickData.lockState == LOCKSTATE_ON) ||
                     g_isMarkerPreview) {
                 UpdateMarkerPos();
-            }
+			}
             break;
         default:
             break;
@@ -301,6 +338,12 @@ extern "C" __declspec(dllexport) void SetMarkerPreview(bool markerPreview)
     if (g_isMarkerPreview) {
         UpdateMarkerPos();
     }
+}
+
+extern "C" __declspec(dllexport) void AllowMouseMove(bool allow, int distancePx)
+{
+    g_allowMouseMove = allow;
+    g_allowMouseMoveDistancePx = distancePx;
 }
 
 /*

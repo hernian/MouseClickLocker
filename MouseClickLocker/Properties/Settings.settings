@@ -11,5 +11,11 @@
     <Setting Name="MarkerYOffset" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">24</Value>
     </Setting>
+    <Setting Name="AllowMouseMove" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="AllowMouseMovePx" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">16</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

@@ -51,9 +51,7 @@
             // 
             contextMenuStrip.Items.AddRange(new ToolStripItem[] { aboutToolStripMenuItem, settingsToolStripMenuItem, isClickLockEnabledToolStripMenuItem, toolStripSeparator1, quitToolStripMenuItem });
             contextMenuStrip.Name = "contextMenuStrip";
-            contextMenuStrip.Size = new Size(196, 120);
-            contextMenuStrip.Closed += ContextMenuStrip_Closed;
-            contextMenuStrip.Opening += ContextMenuStrip_Opening;
+            contextMenuStrip.Size = new Size(196, 98);
             // 
             // aboutToolStripMenuItem
             // 
@@ -76,6 +74,7 @@
             isClickLockEnabledToolStripMenuItem.Name = "isClickLockEnabledToolStripMenuItem";
             isClickLockEnabledToolStripMenuItem.Size = new Size(195, 22);
             isClickLockEnabledToolStripMenuItem.Text = "クリックロックを有効にする";
+            isClickLockEnabledToolStripMenuItem.Click += IsClickLockEnabledToolStripMenuItem_Click;
             // 
             // toolStripSeparator1
             // 

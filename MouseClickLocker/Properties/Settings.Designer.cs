@@ -58,5 +58,29 @@ namespace MouseClickLocker.Properties {
                 this["MarkerYOffset"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool AllowMouseMove {
+            get {
+                return ((bool)(this["AllowMouseMove"]));
+            }
+            set {
+                this["AllowMouseMove"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("16")]
+        public int AllowMouseMovePx {
+            get {
+                return ((int)(this["AllowMouseMovePx"]));
+            }
+            set {
+                this["AllowMouseMovePx"] = value;
+            }
+        }
     }
 }

@@ -17,6 +17,7 @@ namespace MouseClickLocker
     {
         private int _initialXOffset;
         private int _initialYOffset;
+        private int _allowMouseMoveDistancePx;
 
         public SettingsForm(MouseClickLockerSettings settings)
         {
@@ -28,6 +29,8 @@ namespace MouseClickLocker
             trackBarMarkerXOffset.Value = settings.MarkerXOffset;
             trackBarMarkerYOffset.Value = settings.MarkerYOffset;
             trackBarClickLockDelayMS.Value = settings.ClickLockDelayMS;
+            checkBoxAllowMouseMove.Checked = settings.AllowMouseMove;
+            _allowMouseMoveDistancePx = settings.AllowMouseMoveDistancePx;
         }
 
         public MouseClickLockerSettings GetSettings()
@@ -37,6 +40,8 @@ namespace MouseClickLocker
                 MarkerXOffset = trackBarMarkerXOffset.Value,
                 MarkerYOffset = trackBarMarkerYOffset.Value,
                 ClickLockDelayMS = trackBarClickLockDelayMS.Value,
+                AllowMouseMove = checkBoxAllowMouseMove.Checked,
+                AllowMouseMoveDistancePx = _allowMouseMoveDistancePx,
             };
             return settings;
         }
@@ -50,11 +55,13 @@ namespace MouseClickLocker
 
         private void TrackBarMarkerXOffset_ValueChanged(object sender, EventArgs e)
         {
+            labelXOffset.Text = $"{trackBarMarkerXOffset.Value} px";
             this.PreviewMarkerOffset();
         }
 
         private void TrackBarMarkerYOffset_ValueChanged(object sender, EventArgs e)
         {
+            labelYOffset.Text = $"{trackBarMarkerYOffset.Value} px";
             this.PreviewMarkerOffset();
         }
 

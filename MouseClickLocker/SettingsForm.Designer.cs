@@ -38,6 +38,9 @@
             buttonOK = new Button();
             buttonCancel = new Button();
             trackBarClickLockDelayMS = new TrackBar();
+            labelXOffset = new Label();
+            labelYOffset = new Label();
+            checkBoxAllowMouseMove = new CheckBox();
             ((System.ComponentModel.ISupportInitialize)trackBarMarkerXOffset).BeginInit();
             ((System.ComponentModel.ISupportInitialize)trackBarMarkerYOffset).BeginInit();
             ((System.ComponentModel.ISupportInitialize)trackBarClickLockDelayMS).BeginInit();
@@ -54,13 +57,15 @@
             // 
             // trackBarMarkerXOffset
             // 
-            trackBarMarkerXOffset.Location = new Point(106, 25);
+            trackBarMarkerXOffset.LargeChange = 16;
+            trackBarMarkerXOffset.Location = new Point(164, 25);
             trackBarMarkerXOffset.Maximum = 64;
             trackBarMarkerXOffset.Minimum = -64;
             trackBarMarkerXOffset.Name = "trackBarMarkerXOffset";
             trackBarMarkerXOffset.Size = new Size(231, 45);
+            trackBarMarkerXOffset.SmallChange = 4;
             trackBarMarkerXOffset.TabIndex = 1;
-            trackBarMarkerXOffset.TickStyle = TickStyle.None;
+            trackBarMarkerXOffset.TickFrequency = 4;
             trackBarMarkerXOffset.ValueChanged += TrackBarMarkerXOffset_ValueChanged;
             // 
             // label2
@@ -74,13 +79,15 @@
             // 
             // trackBarMarkerYOffset
             // 
-            trackBarMarkerYOffset.Location = new Point(106, 70);
+            trackBarMarkerYOffset.LargeChange = 16;
+            trackBarMarkerYOffset.Location = new Point(164, 70);
             trackBarMarkerYOffset.Maximum = 64;
             trackBarMarkerYOffset.Minimum = -64;
             trackBarMarkerYOffset.Name = "trackBarMarkerYOffset";
             trackBarMarkerYOffset.Size = new Size(231, 45);
+            trackBarMarkerYOffset.SmallChange = 4;
             trackBarMarkerYOffset.TabIndex = 3;
-            trackBarMarkerYOffset.TickStyle = TickStyle.None;
+            trackBarMarkerYOffset.TickFrequency = 4;
             trackBarMarkerYOffset.ValueChanged += TrackBarMarkerYOffset_ValueChanged;
             // 
             // label3
@@ -95,7 +102,7 @@
             // labelClickDelayMS
             // 
             labelClickDelayMS.AutoSize = true;
-            labelClickDelayMS.Location = new Point(343, 115);
+            labelClickDelayMS.Location = new Point(401, 115);
             labelClickDelayMS.Name = "labelClickDelayMS";
             labelClickDelayMS.Size = new Size(34, 15);
             labelClickDelayMS.TabIndex = 6;
@@ -104,7 +111,7 @@
             // buttonOK
             // 
             buttonOK.DialogResult = DialogResult.OK;
-            buttonOK.Location = new Point(262, 166);
+            buttonOK.Location = new Point(273, 203);
             buttonOK.Name = "buttonOK";
             buttonOK.Size = new Size(75, 30);
             buttonOK.TabIndex = 7;
@@ -114,7 +121,7 @@
             // buttonCancel
             // 
             buttonCancel.DialogResult = DialogResult.Cancel;
-            buttonCancel.Location = new Point(346, 166);
+            buttonCancel.Location = new Point(357, 203);
             buttonCancel.Name = "buttonCancel";
             buttonCancel.Size = new Size(75, 30);
             buttonCancel.TabIndex = 8;
@@ -123,15 +130,45 @@
             // 
             // trackBarClickLockDelayMS
             // 
-            trackBarClickLockDelayMS.Location = new Point(106, 115);
+            trackBarClickLockDelayMS.LargeChange = 200;
+            trackBarClickLockDelayMS.Location = new Point(164, 115);
             trackBarClickLockDelayMS.Maximum = 3000;
             trackBarClickLockDelayMS.Minimum = 500;
             trackBarClickLockDelayMS.Name = "trackBarClickLockDelayMS";
             trackBarClickLockDelayMS.Size = new Size(231, 45);
+            trackBarClickLockDelayMS.SmallChange = 100;
             trackBarClickLockDelayMS.TabIndex = 9;
-            trackBarClickLockDelayMS.TickStyle = TickStyle.None;
+            trackBarClickLockDelayMS.TickFrequency = 100;
             trackBarClickLockDelayMS.Value = 500;
             trackBarClickLockDelayMS.ValueChanged += TrackBarClickLockDelayMS_ValueChanged;
+            // 
+            // labelXOffset
+            // 
+            labelXOffset.AutoSize = true;
+            labelXOffset.Location = new Point(401, 25);
+            labelXOffset.Name = "labelXOffset";
+            labelXOffset.Size = new Size(31, 15);
+            labelXOffset.TabIndex = 13;
+            labelXOffset.Text = "ドット";
+            // 
+            // labelYOffset
+            // 
+            labelYOffset.AutoSize = true;
+            labelYOffset.Location = new Point(401, 70);
+            labelYOffset.Name = "labelYOffset";
+            labelYOffset.Size = new Size(31, 15);
+            labelYOffset.TabIndex = 14;
+            labelYOffset.Text = "ドット";
+            // 
+            // checkBoxAllowMouseMove
+            // 
+            checkBoxAllowMouseMove.AutoSize = true;
+            checkBoxAllowMouseMove.Location = new Point(29, 160);
+            checkBoxAllowMouseMove.Name = "checkBoxAllowMouseMove";
+            checkBoxAllowMouseMove.Size = new Size(155, 19);
+            checkBoxAllowMouseMove.TabIndex = 15;
+            checkBoxAllowMouseMove.Text = "マウスの移動を許容する(&A)";
+            checkBoxAllowMouseMove.UseVisualStyleBackColor = true;
             // 
             // SettingsForm
             // 
@@ -139,7 +176,10 @@
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             CancelButton = buttonCancel;
-            ClientSize = new Size(441, 213);
+            ClientSize = new Size(475, 275);
+            Controls.Add(checkBoxAllowMouseMove);
+            Controls.Add(labelYOffset);
+            Controls.Add(labelXOffset);
             Controls.Add(trackBarClickLockDelayMS);
             Controls.Add(buttonCancel);
             Controls.Add(buttonOK);
@@ -173,5 +213,8 @@
         private Button buttonCancel;
         private TrackBar trackBarClickLockDelayMS;
         private Label labelClickDelayMS;
+        private Label labelXOffset;
+        private Label labelYOffset;
+        private CheckBox checkBoxAllowMouseMove;
     }
 }
