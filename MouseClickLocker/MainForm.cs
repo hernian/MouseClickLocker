@@ -8,6 +8,10 @@ namespace MouseClickLocker
 {
     public partial class MainForm : Form
     {
+        private const string WM_TASKBARCREATED_STR = "TaskbarCreated";
+
+        private readonly int WM_TASKBARCREATED = RegisterWindowMessage(WM_TASKBARCREATED_STR);
+
         private MouseClickLockerSettings _settings;
         private bool _isClickLockEnabled = true;
         private MarkerForm _markerForm;
@@ -100,6 +104,24 @@ namespace MouseClickLocker
             // トグル動作
             _isClickLockEnabled = (isClickLockEnabledToolStripMenuItem.Checked == false);
             MouseHookLib.EnableClickLock(_isClickLockEnabled);
+        }
+
+        private void OnWmTaskbarCreated()
+        {
+            // タスクバーが再作成されたときの処理をここに記述
+            Debug.WriteLine("WM_TASKBARCREATED 受信: タスクバーが再作成されました");
+            notifyIcon.Visible = false;
+            notifyIcon.Visible = true;
+        }
+
+        protected override void WndProc(ref Message m)
+        {
+            if (m.Msg == WM_TASKBARCREATED)
+            {
+                this.OnWmTaskbarCreated();
+                return;
+            }
+            base.WndProc(ref m);
         }
     }
 }

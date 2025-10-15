@@ -1,9 +1,9 @@
 #include "pch.h"
 
 #if defined(_DEBUG)
-#define DEBUG_PRINTF(VA_ARGS) DebugPrintf(VA_ARGS)
+#define DEBUG_PRINTF(...) DebugPrintf(__VA_ARGS__)
 #else
-#define DEBUG_PRINTF(VA_ARGS)
+#define DEBUG_PRINTF(...)
 #endif
 
 // WM_NOTIFY_LOCK_STATE
