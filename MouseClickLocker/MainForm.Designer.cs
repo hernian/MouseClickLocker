@@ -51,21 +51,21 @@
             // 
             contextMenuStrip.Items.AddRange(new ToolStripItem[] { aboutToolStripMenuItem, settingsToolStripMenuItem, isClickLockEnabledToolStripMenuItem, toolStripSeparator1, quitToolStripMenuItem });
             contextMenuStrip.Name = "contextMenuStrip";
-            contextMenuStrip.Size = new Size(242, 98);
+            contextMenuStrip.Size = new Size(196, 120);
             contextMenuStrip.Closed += ContextMenuStrip_Closed;
             contextMenuStrip.Opening += ContextMenuStrip_Opening;
             // 
             // aboutToolStripMenuItem
             // 
             aboutToolStripMenuItem.Name = "aboutToolStripMenuItem";
-            aboutToolStripMenuItem.Size = new Size(241, 22);
-            aboutToolStripMenuItem.Text = "Mouse Click Lokcer について(&A)...";
+            aboutToolStripMenuItem.Size = new Size(195, 22);
+            aboutToolStripMenuItem.Text = "このアプリについて(&A)...";
             aboutToolStripMenuItem.Click += AboutToolStripMenuItem_Click;
             // 
             // settingsToolStripMenuItem
             // 
             settingsToolStripMenuItem.Name = "settingsToolStripMenuItem";
-            settingsToolStripMenuItem.Size = new Size(241, 22);
+            settingsToolStripMenuItem.Size = new Size(195, 22);
             settingsToolStripMenuItem.Text = "設定(&S)...";
             settingsToolStripMenuItem.Click += SettingsToolStripMenuItem_Click;
             // 
@@ -74,18 +74,18 @@
             isClickLockEnabledToolStripMenuItem.Checked = true;
             isClickLockEnabledToolStripMenuItem.CheckState = CheckState.Checked;
             isClickLockEnabledToolStripMenuItem.Name = "isClickLockEnabledToolStripMenuItem";
-            isClickLockEnabledToolStripMenuItem.Size = new Size(241, 22);
+            isClickLockEnabledToolStripMenuItem.Size = new Size(195, 22);
             isClickLockEnabledToolStripMenuItem.Text = "クリックロックを有効にする";
             // 
             // toolStripSeparator1
             // 
             toolStripSeparator1.Name = "toolStripSeparator1";
-            toolStripSeparator1.Size = new Size(238, 6);
+            toolStripSeparator1.Size = new Size(192, 6);
             // 
             // quitToolStripMenuItem
             // 
             quitToolStripMenuItem.Name = "quitToolStripMenuItem";
-            quitToolStripMenuItem.Size = new Size(241, 22);
+            quitToolStripMenuItem.Size = new Size(195, 22);
             quitToolStripMenuItem.Text = "終了(&Q)";
             quitToolStripMenuItem.Click += QuitToolStripMenuItem_Click;
             // 
@@ -98,9 +98,11 @@
             MaximizeBox = false;
             MinimizeBox = false;
             Name = "MainForm";
-            Text = "Form1";
+            ShowInTaskbar = false;
+            StartPosition = FormStartPosition.Manual;
+            Text = "MouseClickLoker";
+            WindowState = FormWindowState.Minimized;
             Load += MainForm_Load;
-            Move += MainForm_Move;
             contextMenuStrip.ResumeLayout(false);
             ResumeLayout(false);
         }
