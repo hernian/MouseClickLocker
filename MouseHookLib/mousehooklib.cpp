@@ -181,8 +181,10 @@ static bool OnButtonUp(BUTTONCONTEXT& btnCtx)
     if (!btnCtx.isTimerEventFired) {
         DEBUG_PRINTF(TEXT("Click lock is deactivated. name: %s\r\n"), btnCtx.name);
 		btnCtx.isTimerEventFired = false;
-        btnCtx.lockState = LOCKSTATE_OFF;
-		PostMessage(g_hWndMarker, WM_NOTIFY_LOCK_STATE, btnCtx.wParamLockType, btnCtx.lockState);
+        if (btnCtx.lockState != LOCKSTATE_OFF) {
+            btnCtx.lockState = LOCKSTATE_OFF;
+            PostMessage(g_hWndMarker, WM_NOTIFY_LOCK_STATE, btnCtx.wParamLockType, btnCtx.lockState);
+        }
     }
     bool res = (btnCtx.lockState == LOCKSTATE_ON);
     LeaveCriticalSection(&g_cs);
@@ -206,7 +208,6 @@ static void OnMouseMove(BUTTONCONTEXT& btnCtx, LPARAM downMousePos)
         }
     }
     LeaveCriticalSection(&g_cs);
-    PostMessage(g_hWndMarker, WM_NOTIFY_LOCK_STATE, btnCtx.wParamLockType, btnCtx.lockState);
 }
 
 

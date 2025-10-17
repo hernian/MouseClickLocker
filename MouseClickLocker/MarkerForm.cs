@@ -124,11 +124,11 @@ namespace MouseClickLocker
 
         private void OnNotifyLockState(ref Message m)
         {
-            Debug.WriteLine("[MarkerForm]OnNotifyLockState");
             var leftLockStatePrev = _leftLockState;
             var rightLockStatePrev = _rightLockState;
             var lockType = (int)m.WParam;
             var lockState = (LockState)m.LParam;
+            Debug.WriteLine($"[MarkerForm]OnNotifyLockState. lockType: {lockType}, lockState: {lockState}");
             switch (lockType)
             { 
                 case MouseHookLib.LOCKTYPE_LEFT:
@@ -141,10 +141,13 @@ namespace MouseClickLocker
             switch (lockState)
             {
                 case LockState.ACTIVATED:
-                    // _lockActivatedSoundPlayer.Play();
+                    _lockActivatedSoundPlayer.Play();
                     break;
                 case LockState.SUPPRESSED:
-                    // _lockSuppressedSoundPlayer.Play();
+                    _lockSuppressedSoundPlayer.Play();
+                    break;
+                case LockState.DEACTIVATED:
+                    _lockDeactivatedSoundPlayer.Play();
                     break;
                 default:
                     break;
@@ -163,10 +166,6 @@ namespace MouseClickLocker
             if (_leftLockState == LockState.SUPPRESSED || _rightLockState == LockState.SUPPRESSED)
             {
                 _timer.Start();
-            }
-            else if (IsClickLockDeactivated(leftLockStatePrev, _leftLockState) || IsClickLockDeactivated(rightLockStatePrev, _rightLockState))
-            {
-                // _lockDeactivatedSoundPlayer.Play();
             }
         }
 
