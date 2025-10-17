@@ -1,3 +1,9 @@
+// Copyright (c) 2025 hernianrunner@gmail.com
+// SPDX-License-Identifier: MIT
+//
+// This file was initially generated with GitHub Copilot and then
+// modified by hernianrunner@gmail.com.
+// See repository LICENSE for full licensing terms.
 using System;
 using System.Drawing;
 using System.Runtime.InteropServices;
