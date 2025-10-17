@@ -69,7 +69,7 @@ namespace MouseClickLocker
             settingsToolStripMenuItem.Enabled = false;
             using var settingsForm = new SettingsForm(_settings);
             _markerForm.Preview = true;
-            MouseHookLib.SetMarkerPreview(false);
+            MouseHookLib.SetMarkerPreview(true);
             var markerXOffset = _settings.MarkerXOffset;
             var markerYOffset = _settings.MarkerYOffset;
             try
