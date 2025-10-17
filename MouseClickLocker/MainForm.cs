@@ -28,8 +28,7 @@ namespace MouseClickLocker
         {
             this.Visible = false;
             _markerForm = new MarkerForm();
-            // _markerForm.CreateControl();
-            _markerForm.Show();
+            _markerForm.CreateControl();
 
             MouseHookLib.Initialize();
             MouseHookLib.SetClickLockDelayMS(_settings.ClickLockDelayMS);
