@@ -39,6 +39,16 @@ namespace MouseClickLocker
             _timer.Interval = 2000;
             _timer.Tick += Timer_Tick;
         }
+        protected override CreateParams CreateParams
+        {
+            get
+            {
+                var cp = base.CreateParams;
+                cp.ExStyle |= WS_EX_TRANSPARENT;
+                return cp;
+            }
+        }
+
         private void Timer_Tick(object? sender, EventArgs e)
         {
             _timer.Stop();
@@ -131,10 +141,10 @@ namespace MouseClickLocker
             switch (lockState)
             {
                 case LockState.ACTIVATED:
-                    _lockActivatedSoundPlayer.Play();
+                    // _lockActivatedSoundPlayer.Play();
                     break;
                 case LockState.SUPPRESSED:
-                    _lockSuppressedSoundPlayer.Play();
+                    // _lockSuppressedSoundPlayer.Play();
                     break;
                 default:
                     break;
@@ -156,17 +166,12 @@ namespace MouseClickLocker
             }
             else if (IsClickLockDeactivated(leftLockStatePrev, _leftLockState) || IsClickLockDeactivated(rightLockStatePrev, _rightLockState))
             {
-                _lockDeactivatedSoundPlayer.Play();
+                // _lockDeactivatedSoundPlayer.Play();
             }
         }
 
         protected override void WndProc(ref Message m)
         {
-            if (m.Msg == WM_NCHITTEST)
-            {
-                m.Result = (IntPtr)HTCAPTION;
-                return;
-            }
             if (m.Msg == MouseHookLib.WM_NOTIFY_LOCK_STATE)
             {
                 this.OnNotifyLockState(ref m);

@@ -43,5 +43,7 @@ namespace MouseClickLocker
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         public static extern int RegisterWindowMessage(string lpString);
 
+        public const int WS_EX_TRANSPARENT = 0x20;
+
     }
 }

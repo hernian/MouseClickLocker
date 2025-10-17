@@ -88,13 +88,17 @@ static void DebugPrintf(LPCTSTR format, ...)
 /*
  * @brief マーカーウィンドウの位置を更新する
  */
-static void UpdateMarkerPos()
+static void UpdateMarkerPos(bool setZOrder)
 {
     LPARAM lastMousePos = g_lastMousePos;
 	LPARAM markerOffset = g_markerOffset;
     int x = GET_X_LPARAM(lastMousePos) + GET_X_LPARAM(markerOffset);
     int y = GET_Y_LPARAM(lastMousePos) + GET_Y_LPARAM(markerOffset);
-    SetWindowPos(g_hWndMarker, HWND_TOPMOST, x, y, 0, 0, SWP_NOACTIVATE | SWP_NOSIZE);
+	UINT flags = SWP_NOACTIVATE | SWP_NOSIZE;
+    if (!setZOrder) {
+        flags |= SWP_NOZORDER;
+	}
+    SetWindowPos(g_hWndMarker, HWND_TOPMOST, x, y, 0, 0, flags);
 }
 
 
@@ -221,26 +225,25 @@ static LRESULT CALLBACK LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lPara
 		// マウスカーソル位置をグローバル変数に格納するにあたって
         // x, y座標をLPARAMに結合してアトミックに格納するので排他制御は要らない
 		g_lastMousePos = MAKELPARAM(pMouse->pt.x, pMouse->pt.y);
-
         switch (wParam)
         {
         case WM_LBUTTONDOWN:
             g_leftDownMousePos = g_lastMousePos;
 			ignoreMouseEvent = OnButtonDown(g_leftButtonClickData);
-            UpdateMarkerPos();
+			UpdateMarkerPos(!g_rightButtonClickData.isButtonDown); // 左ボタンのみ押下時はZオーダーを更新
             break;
         case WM_LBUTTONUP:
             ignoreMouseEvent = OnButtonUp(g_leftButtonClickData);
-            UpdateMarkerPos();
+            UpdateMarkerPos(false);
             break;
         case WM_RBUTTONDOWN:
             g_rightDownMousePos = g_lastMousePos;
             ignoreMouseEvent = OnButtonDown(g_rightButtonClickData);
-            UpdateMarkerPos();
+			UpdateMarkerPos(!g_leftButtonClickData.isButtonDown); // 右ボタンのみ押下時はZオーダーを更新
             break;
         case WM_RBUTTONUP:
             ignoreMouseEvent = OnButtonUp(g_rightButtonClickData);
-            UpdateMarkerPos();
+            UpdateMarkerPos(false);
             break;
 		case WM_MOUSEMOVE:
             OnMouseMove(g_leftButtonClickData, g_leftDownMousePos);
@@ -250,7 +253,7 @@ static LRESULT CALLBACK LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lPara
                     g_rightButtonClickData.isButtonDown ||
                     (g_rightButtonClickData.lockState == LOCKSTATE_ON) ||
                     g_isMarkerPreview) {
-                UpdateMarkerPos();
+                UpdateMarkerPos(false);
 			}
             break;
         default:
@@ -328,7 +331,7 @@ extern "C" __declspec(dllexport) void SetMarkerOffset(int xOffset, int yOffset)
             g_rightButtonClickData.isButtonDown ||
             (g_rightButtonClickData.lockState == LOCKSTATE_ON) ||
             g_isMarkerPreview) {
-        UpdateMarkerPos();
+        UpdateMarkerPos(false);
     }
 }
 
@@ -336,7 +339,7 @@ extern "C" __declspec(dllexport) void SetMarkerPreview(bool markerPreview)
 {
     g_isMarkerPreview = markerPreview;
     if (g_isMarkerPreview) {
-        UpdateMarkerPos();
+        UpdateMarkerPos(true);
     }
 }
 
