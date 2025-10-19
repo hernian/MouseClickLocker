@@ -94,6 +94,15 @@ static void UpdateMarkerPos(bool setZOrder)
 	LPARAM markerOffset = g_markerOffset;
     int x = GET_X_LPARAM(lastMousePos) + GET_X_LPARAM(markerOffset);
     int y = GET_Y_LPARAM(lastMousePos) + GET_Y_LPARAM(markerOffset);
+#if 1
+    if (!g_leftButtonClickData.isButtonDown  &&
+            !g_rightButtonClickData.isButtonDown &&
+            (g_leftButtonClickData.lockState != LOCKSTATE_ON) &&
+            (g_rightButtonClickData.lockState != LOCKSTATE_ON)){
+        x = 0;
+        y = 0;
+	}
+#endif
 	UINT flags = SWP_NOACTIVATE | SWP_NOSIZE;
     if (!setZOrder) {
         flags |= SWP_NOZORDER;

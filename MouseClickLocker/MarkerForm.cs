@@ -31,7 +31,7 @@ namespace MouseClickLocker
             InitializeComponent();
             this.AutoScaleMode = AutoScaleMode.None;
             this.Enabled = false;
-            this.Visible = false;
+            // this.Visible = false;
             this.Load += MarkerForm_Load;
 
             _layeredBitmap = _lockImageNone;
@@ -54,7 +54,7 @@ namespace MouseClickLocker
             _timer.Stop();
             if ((_leftLockState == LockState.SUPPRESSED) || (_rightLockState == LockState.SUPPRESSED))
             {
-                this.Visible = false;
+//                this.Visible = false;
             }
         }
 
@@ -77,7 +77,7 @@ namespace MouseClickLocker
                 }
                 else
                 {
-                    this.Visible = false;
+//                    this.Visible = false;
                 }
             }
         }
@@ -161,7 +161,7 @@ namespace MouseClickLocker
             }
 
             Debug.WriteLine($"[MarkerForm]_leftLockState: {_leftLockState}, _right: {_rightLockState}, _preview: {_preview}");
-            this.Visible = (_preview || (_leftLockState != LockState.DEACTIVATED) || (_rightLockState != LockState.DEACTIVATED));
+            // this.Visible = (_preview || (_leftLockState != LockState.DEACTIVATED) || (_rightLockState != LockState.DEACTIVATED));
             _timer.Stop();
             if (_leftLockState == LockState.SUPPRESSED || _rightLockState == LockState.SUPPRESSED)
             {
